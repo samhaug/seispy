@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+import scipy
+import obspy
+import numpy as np
+from obspy.taup import TauPyModel
+model = TauPyModel(model="prem")
+
 ###############################################################################
 def align_on_phase(st,phase):
 ###############################################################################
