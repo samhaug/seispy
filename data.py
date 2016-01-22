@@ -4,10 +4,28 @@ import scipy
 import obspy
 import numpy as np
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem")
+model = TauPyModel(model="premd")
 
 ###############################################################################
-def align_on_phase(st,phase):
+def phase_window(tr,phases,window_tuple):
+###############################################################################
+    '''
+    return window around PKIKP phase
+    '''
+    tr.stats.distance = tr.stats.sac['gcarc']
+    origin_time = tr.stats.sac['o']
+    start = tr.stats.starttime
+    time = model.get_travel_times(source_depth_in_km = tr.stats.sac['evdp'],
+                                       distance_in_degree = tr.stats.sac['gcarc'],
+                                       #distance_in_degree = 70,
+                                       phase_list = phases)
+
+    t = time[0].time+origin_time
+    PKPPKP_tr = tr.slice(start+t+window_tuple[0],start+t+window_tuple[1])
+    return PKPPKP_tr
+
+###############################################################################
+def align_on_phase(st,phase,**kwarg):
 ###############################################################################
     '''
     Use to precisely align seismogram on phase
@@ -30,7 +48,7 @@ def align_on_phase(st,phase):
         o = tr.stats.sac['o']
         t+P.time+o
         window_data = (tr.slice(t+P.time-10+o,t+P.time+10+o).data)
-        max_P = window_data[window_data > 0].max()
+        max_P = window_data[window_data < 0].min()
         imax = np.argmin(np.abs(max_P-window_data))
         shift = int(len(window_data)/2.)-imax
         tr.data = np.roll(tr.data,(1*shift))

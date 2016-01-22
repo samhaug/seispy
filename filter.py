@@ -4,7 +4,7 @@ import scipy
 import obspy
 from obspy.taup import TauPyModel
 import numpy as np
-model = TauPyModel(model="prem")
+model = TauPyModel(model="premd")
 
 '''
 Samuel Haugland 01/19/16
@@ -55,7 +55,7 @@ def dirty_filter(st):
         max_P = abs(tr.slice(t+P.time-5+o, t+P.time+5+o).data).max()
         pre_noise = abs(tr.slice(t+P.time-50+o, t+P.time-20+o).data).max()
         post_noise = abs(tr.slice(t+P.time+10+o, t+P.time+30+o).data).max()
-        if (pre_noise > max_P*0.30) or (post_noise > max_P*0.3):
+        if (pre_noise > max_P*0.20) or (post_noise > max_P*0.4):
             st.remove(tr)
 
     return st

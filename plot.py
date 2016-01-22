@@ -10,14 +10,12 @@ import obspy
 import h5py
 import numpy as np
 
-from cm import slip
-from option_d import test_cm
-from option_b import test_cm as test_cm_b
+from seispy.data import phase_window
 from matplotlib import pyplot as plt
 from obspy.taup import TauPyModel
 import obspy.signal.filter
 import obspy.signal
-model = TauPyModel(model="prem")
+model = TauPyModel(model="premd")
 from matplotlib import colors, ticker, cm
 from matplotlib.patches import Polygon
 from matplotlib.colors import LogNorm
@@ -43,8 +41,8 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
     time_offset = integer/float amount of seconds to shift the arrival
                  to match PKPdf on zero
 
-    name = default = False. If a string is passed, it will save the 
-                 image to pdf in the 
+    name = default = False. If a string is passed, it will save the
+                 image to pdf in the
            directory work4/IMAGES
     '''
     event_depth = seis_stream_in[0].stats.xh['source_depth_in_km']
@@ -141,11 +139,12 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
     cbar.solids.set_rasterized(True)
     cbar.set_label(r'$\log_{10}(Amplitude)$',fontsize=14)
 
-    if name == False:
-        plt.show()
-    else:
-        fig.suptitle(str(name),fontsize=16)
-        plt.savefig('/home/samhaug/Documents/Figures/'+name+'.pdf')
+    return waveform_array
+    #if name == False:
+    #    plt.show()
+    #else:
+    #    fig.suptitle(str(name),fontsize=16)
+    #    plt.savefig('/home/samhaug/Documents/Figures/'+name+'.pdf')
 
 def vespagram(st_in,**kwargs):
     '''
@@ -156,6 +155,7 @@ def vespagram(st_in,**kwargs):
     window_tuple = kwargs.get('window_tuple',(-10,130))
     window_phase = kwargs.get('window_phase',['P'])
     phase_list = kwargs.get('phase_list',False)
+    plot_line = kwargs.get('plot_line',False)
     n_root = kwargs.get('n_root',2.0)
 
     st = obspy.core.Stream()
@@ -189,8 +189,8 @@ def vespagram(st_in,**kwargs):
             R += np.sign(x)*pow(np.abs(x),1.0/n)
         R = R/float(len(st))
         yi = R*pow(abs(R),n-1)
-        hil = scipy.signal.hilbert(yi)
-        yi = pow(hil.real**2+R**2,1/2.)
+        hil = scipy.fftpack.hilbert(yi)
+        yi = pow(hil**2+R**2,1/2.)
         return yi,R*(3.)
 
     def phase_plot(ax,evdp,degree,phases,text_color):
@@ -260,6 +260,7 @@ def vespagram(st_in,**kwargs):
                num=vesp_R.shape[1])
 
     figR, axR= plt.subplots(1,figsize=(14,7))
+
     for idx, ii in enumerate(np.arange(1.5,-1.5,-0.1)):
         vesp_R[idx,:] += ii
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] >= ii,
@@ -276,14 +277,12 @@ def vespagram(st_in,**kwargs):
                    round(st[0].stats.sac['evdp'],3),round(mn_r,3),
                    os.getcwd().split('-')[3]))
 
-    if phase_list != False:
+    if phase_list:
        phase_plot(ax[0],evdp,mn_r,phase_list,text_color='white')
        phase_plot(ax[1],evdp,mn_r,phase_list,text_color='black')
        phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
 
     plt.show()
-    return vesp_y,vesp_R
-
 
 def plot(tr,**kwargs):
     '''
@@ -344,6 +343,41 @@ def section(st,**kwargs):
     '''
     Plot record section of obspy stream object
     '''
+    labels = kwargs.get('labels',False)
+    phases = kwargs.get('phase_list',False)
+    fill = kwargs.get('fill',False)
+    shift = kwargs.get('shift',False)
+
+    def main():
+        st.normalize()
+        p_list,name_list,dist_list = p_list_maker(st)
+        lim_tuple = ax_limits(p_list)
+
+        fig, ax = plt.subplots(figsize =(10,15))
+        for ii in p_list:
+            add_to_axes(ii,ax)
+
+        if phases != False:
+            phase_plot(lim_tuple,50.,st[0].stats.sac['evdp'],phases,ax)
+
+        ax.set_ylabel('Distance (deg)')
+        ax.set_xlabel('Seconds After Event')
+        if shift:
+            ax.set_xlabel('Seconds')
+        ax.set_title('Start: {} \n Depth (km): {}, Channel; {}, {}'.format(
+                 st[0].stats.starttime,
+                 round(st[0].stats.sac['evdp'],3),
+                 st[0].stats.channel,
+                 os.getcwd().split('-')[3]))
+        if labels:
+            y1, y2 = ax.get_ylim()
+            ax_n = ax.twinx()
+            ax_n.set_yticks(dist_list)
+            ax_n.set_yticklabels(name_list)
+            ax_n.set_ylim(y1,y2)
+
+        plt.show()
+
     def phase_plot(lim_tuple,ref_degree,evdp,phases,ax):
         arrivals = model.get_travel_times(distance_in_degree=ref_degree,
         source_depth_in_km=evdp,
@@ -359,7 +393,6 @@ def section(st,**kwargs):
                 ax.legend()
 
     def plotter(art,lim_tuple,ax):
-        #fig, ax = plt.subplots(figsize = plt.figaspect(1.5))
         ax.grid()
         ax.set_xlim(lim_tuple[0])
         ax.set_ylim(lim_tuple[1])
@@ -371,14 +404,19 @@ def section(st,**kwargs):
         time = trace_tuple[1]
         dist = trace_tuple[2]
         ax.plot(time,data+dist,alpha=0.5,c='k',lw=1)
+        if fill:
+            ax.fill_between(time, dist, data+dist, where=data+dist <= dist,
+                            facecolor='k', alpha=0.5, interpolate=True)
 
-    def parallel_list_maker(st):
+    def p_list_maker(st):
         p_list = []
         name_list = []
         dist_list = []
         for tr in st:
             data = tr.data
             o = tr.stats.sac['o']
+            if shift:
+                o = 0
             time = np.linspace(-1*o,(tr.stats.delta*tr.stats.npts)-o,
                    num=tr.stats.npts)
             dist = tr.stats.sac['gcarc']
@@ -398,40 +436,7 @@ def section(st,**kwargs):
         max_time = max(range_list[:,2])
         return ([min_time,max_time],[min_range-3,max_range+3])
 
-    st.normalize()
-    p_list,name_list,dist_list = parallel_list_maker(st)
-    lim_tuple = ax_limits(p_list)
-
-    if __name__ == 'seis_data':
-        p = multiprocessing.Pool(8)
-        art = p.map(parallel_add_to_axes,p_list)
-        #return delta_t
-        #return range_list, art
-        #return p_list
-
-    fig, ax = plt.subplots(figsize =(10,15))
-    for ii in p_list:
-        add_to_axes(ii,ax)
-
-    plotter(art,lim_tuple,ax)
-
-    phases = kwargs.get('phase_list',False)
-    if phases != False:
-        phase_plot(lim_tuple,50.,st[0].stats.sac['evdp'],phases,ax)
-
-    ax.set_ylabel('Distance (deg)')
-    ax.set_xlabel('Seconds After Event')
-    ax.set_title('Start: {} \n Depth (km): {}, Channel; {}, {}'.format(
-                 st[0].stats.starttime,
-                 round(st[0].stats.sac['evdp'],3),
-                 st[0].stats.channel,
-                 os.getcwd().split('-')[3]))
-    ax_n = ax.twinx()
-    ax_n.set_yticks(dist_list)
-    ax_n.set_yticklabels(name_list)
-    y1, y2 = ax.get_ylim()
-    ax_n.set_ylim(y1,y2)
-    plt.show()
+    main()
 
 def fft(tr, freqmin=0.0, freqmax=2.0):
     '''
