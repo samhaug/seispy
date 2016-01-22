@@ -17,7 +17,6 @@ def phase_window(tr,phases,window_tuple):
     start = tr.stats.starttime
     time = model.get_travel_times(source_depth_in_km = tr.stats.sac['evdp'],
                                        distance_in_degree = tr.stats.sac['gcarc'],
-                                       #distance_in_degree = 70,
                                        phase_list = phases)
 
     t = time[0].time+origin_time
@@ -53,6 +52,21 @@ def align_on_phase(st,phase,**kwarg):
         shift = int(len(window_data)/2.)-imax
         tr.data = np.roll(tr.data,(1*shift))
     return st
+
+###############################################################################
+def normalize_on_phase(st,**kwargs):
+###############################################################################
+    '''
+    normalize traces in stream based on maximum value in phase window
+    '''
+    phase = kwargs.get('phase',['P'])
+    window_tuple = kwargs.get('window_tuple',(-10,10))
+
+    for tr in st:
+        window = phase_window(tr,phase,window_tuple)
+        tr.data = tr.data/np.abs(window.data).max()
+    return st
+
 
 ###############################################################################
 def periodic_corr(data, deconvolution):
