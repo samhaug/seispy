@@ -230,14 +230,26 @@ def vespagram(st_in,**kwargs):
 
     fig, ax = plt.subplots(2,sharex=True,figsize=(15,10))
 
-    image_0 = ax[0].imshow(vesp_y,aspect='auto',interpolation='lanczos',
-            extent=[window_tuple[0],window_tuple[1],-1.5,1.5],cmap='gnuplot')
+    image_0 = ax[0].imshow(np.log(vesp_y),aspect='auto',interpolation='lanczos',
+            extent=[window_tuple[0],window_tuple[1],-1.5,1.5],
+            cmap='gnuplot',vmin=-6,vmax=-2)
+
+    vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
+    vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
+    for ii in np.arange(-1.5,1.5,0.1):
+        yi,R = slant_stack(st,mn_r,ii,1.0)
+        vesp_y= np.vstack((vesp_y,yi))
+        vesp_R= np.vstack((vesp_R,R))
+    vesp_y = vesp_y[1::,:]
+    vesp_R = vesp_R[1::,:]
+    vesp_y = vesp_y/ vesp_y.max()
 
     image_1 = ax[1].imshow(np.log(vesp_y), aspect='auto',
             interpolation='lanczos', extent=[window_tuple[0],
             window_tuple[1],-1.5,1.5],cmap='gnuplot', vmin=-6,vmax=-2)
+
     cbar_0 = fig.colorbar(image_0,ax=ax[0])
-    cbar_0.set_label('Normalized seismic energy')
+    cbar_0.set_label('Log(Normalized seismic energy)')
     cbar_1 = fig.colorbar(image_1,ax=ax[1])
     cbar_1.set_label('Log(Normalized seismic energy)')
     ax[0].set_xlim(window_tuple)
@@ -251,10 +263,12 @@ def vespagram(st_in,**kwargs):
     ax[1].set_ylabel('Slowness (s/deg)')
     ax[0].set_ylabel('Slowness (s/deg)')
     ax[1].set_xlabel('Seconds after {}'.format(window_phase[0]))
-    ax[0].set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {} '
-                 .format(st[0].stats.starttime,
+    ax[0].set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {} \
+                     \n Top : N-root = {} Bottom: N-root = 1'
+                  .format(st[0].stats.starttime,
                   round(st[0].stats.sac['evdp'],3),
-                  round(mn_r,3), os.getcwd().split('-')[3]))
+                  round(mn_r,3), os.getcwd().split('-')[3],
+                  str(n_root)))
 
     time_vec = np.linspace(window_tuple[0], window_tuple[1],
                num=vesp_R.shape[1])
@@ -349,7 +363,6 @@ def section(st,**kwargs):
     shift = kwargs.get('shift',False)
 
     def main():
-        st.normalize()
         p_list,name_list,dist_list = p_list_maker(st)
         lim_tuple = ax_limits(p_list)
 
@@ -362,6 +375,7 @@ def section(st,**kwargs):
 
         ax.set_ylabel('Distance (deg)')
         ax.set_xlabel('Seconds After Event')
+
         if shift:
             ax.set_xlabel('Seconds')
         ax.set_title('Start: {} \n Depth (km): {}, Channel; {}, {}'.format(

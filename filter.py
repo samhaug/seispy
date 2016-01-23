@@ -39,23 +39,36 @@ def kurtosis_filter(st, **kwargs):
     return st
 
 
-def dirty_filter(st):
+def dirty_filter(st,*kwargs):
     '''
-    Remove trace from stream if h
+    Remove trace from stream if noise is too much
+    a,b  refer to the time windows before the phase
+    c,d  refer to the time windows after the phase
     '''
+
+    a = kwargs.get('a',50)
+    b = kwargs.get('b',20)
+    c = kwargs.get('c',10)
+    d  = kwargs.get('d',30)
+
+    phase = kwargs.get('phase',['P'])
+
+    pre_limit = kwargs.get('pre_limit',0.3)
+    post_limit = kwargs.get('post_limit',0.3)
 
     for tr in st:
         arrivals = model.get_travel_times(
                    distance_in_degree=tr.stats.sac['gcarc'],
                    source_depth_in_km=tr.stats.sac['evdp'],
-                   phase_list=['P'])
+                   phase_list=phase)
+
         P = arrivals[0]
         t = tr.stats.starttime
         o = tr.stats.sac['o']
-        max_P = abs(tr.slice(t+P.time-5+o, t+P.time+5+o).data).max()
-        pre_noise = abs(tr.slice(t+P.time-50+o, t+P.time-20+o).data).max()
-        post_noise = abs(tr.slice(t+P.time+10+o, t+P.time+30+o).data).max()
-        if (pre_noise > max_P*0.20) or (post_noise > max_P*0.4):
+        max_P = abs(tr.slice(t+P.time-10+o, t+P.time+10+o).data).max()
+        pre_noise = abs(tr.slice(t+P.time-a+o, t+P.time-b+o).data).max()
+        post_noise = abs(tr.slice(t+P.time+c+o, t+P.time+d+o).data).max()
+        if (pre_noise > max_P*pre_limit) or (post_noise > max_P*post_limit):
             st.remove(tr)
 
     return st

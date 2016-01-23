@@ -24,11 +24,12 @@ def phase_window(tr,phases,window_tuple):
     return PKPPKP_tr
 
 ###############################################################################
-def align_on_phase(st,phase,**kwarg):
+def align_on_phase(st, **kwargs):
 ###############################################################################
     '''
     Use to precisely align seismogram on phase
     '''
+    phase = kwargs.get('phase',['P'])
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)
@@ -46,7 +47,7 @@ def align_on_phase(st,phase,**kwarg):
         t = tr.stats.starttime
         o = tr.stats.sac['o']
         t+P.time+o
-        window_data = (tr.slice(t+P.time-10+o,t+P.time+10+o).data)
+        window_data = (tr.slice(t+P.time-15+o,t+P.time+15+o).data)
         max_P = window_data[window_data < 0].min()
         imax = np.argmin(np.abs(max_P-window_data))
         shift = int(len(window_data)/2.)-imax
