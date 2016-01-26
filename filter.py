@@ -39,7 +39,7 @@ def kurtosis_filter(st, **kwargs):
     return st
 
 
-def dirty_filter(st,*kwargs):
+def dirty_filter(st,**kwargs):
     '''
     Remove trace from stream if noise is too much
     a,b  refer to the time windows before the phase
@@ -120,9 +120,26 @@ def range_filter(st, range_tuple):
     '''
 
     for tr in st:
-        if (tr.stats.sac['gcarc'] < range_tuple[0]):
-            st.remove(tr)
-        elif (tr.stats.sac['gcarc'] > range_tuple[1]):
+        if not range_tuple[0] <= tr.stats.sac['gcarc'] <= range_tuple[1]:
             st.remove(tr)
 
     return st
+
+def az_filter(st, az_tuple):
+    '''
+    Removes seismograms from trace if they fall outside the azimuth limits
+    of az_tuple
+    '''
+
+    for tr in st:
+        if not az_tuple[0] <= tr.stats.sac['az'] <= az_tuple[1]:
+            st.remove(tr)
+
+    return st
+
+
+
+
+
+
+

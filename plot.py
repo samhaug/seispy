@@ -27,6 +27,8 @@ from matplotlib.colors import LightSource
 from mpl_toolkits.basemap import Basemap
 from cycler import cycler
 import multiprocessing
+import shutil
+from seispy import mapplot
 
 def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
     '''
@@ -152,11 +154,12 @@ def vespagram(st_in,**kwargs):
     through remove_dirty
     '''
 
-    window_tuple = kwargs.get('window_tuple',(-10,130))
+    window_tuple = kwargs.get('window_tuple',(-10,230))
     window_phase = kwargs.get('window_phase',['P'])
     phase_list = kwargs.get('phase_list',False)
     plot_line = kwargs.get('plot_line',False)
     n_root = kwargs.get('n_root',2.0)
+    save = kwargs.get('save',False)
 
     st = obspy.core.Stream()
     for idx, tr in enumerate(st_in):
@@ -210,7 +213,7 @@ def vespagram(st_in,**kwargs):
                 p = ii.ray_param_sec_degree-P_slowness
                 time = ii.time-P_time
                 ax.scatter(time,p,s=22,marker='D',c='w')
-                ax.text(time,p,ii.name,fontsize=16,color=text_color)
+                #ax.text(time,p,ii.name,fontsize=16,color=text_color)
 
 
     mn_r = mean_range(st)
@@ -259,7 +262,7 @@ def vespagram(st_in,**kwargs):
     ax[0].set_ylim([-1.5,1.5])
     ax[1].set_ylim([-1.5,1.5])
     ax[0].grid(color='w',lw=2)
-    ax[1].grid(color='k',lw=2)
+    ax[1].grid(color='w',lw=2)
     ax[1].set_ylabel('Slowness (s/deg)')
     ax[0].set_ylabel('Slowness (s/deg)')
     ax[1].set_xlabel('Seconds after {}'.format(window_phase[0]))
@@ -270,6 +273,8 @@ def vespagram(st_in,**kwargs):
                   round(mn_r,3), os.getcwd().split('-')[3],
                   str(n_root)))
 
+    if save != False:
+        plt.savefig(save+'/vespagram.pdf',format='pdf')
     time_vec = np.linspace(window_tuple[0], window_tuple[1],
                num=vesp_R.shape[1])
 
@@ -292,11 +297,14 @@ def vespagram(st_in,**kwargs):
                    os.getcwd().split('-')[3]))
 
     if phase_list:
-       phase_plot(ax[0],evdp,mn_r,phase_list,text_color='white')
-       phase_plot(ax[1],evdp,mn_r,phase_list,text_color='black')
+       phase_plot(ax[0],evdp,mn_r,phase_list,text_color='green')
+       phase_plot(ax[1],evdp,mn_r,phase_list,text_color='green')
        phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
 
-    plt.show()
+    if save != False:
+        plt.savefig(save+'/wave.pdf',format='pdf')
+    if save == False:
+        plt.show()
 
 def plot(tr,**kwargs):
     '''
@@ -361,6 +369,7 @@ def section(st,**kwargs):
     phases = kwargs.get('phase_list',False)
     fill = kwargs.get('fill',False)
     shift = kwargs.get('shift',False)
+    save = kwargs.get('save',False)
 
     def main():
         p_list,name_list,dist_list = p_list_maker(st)
@@ -389,6 +398,11 @@ def section(st,**kwargs):
             ax_n.set_yticks(dist_list)
             ax_n.set_yticklabels(name_list)
             ax_n.set_ylim(y1,y2)
+
+        if save != False:
+            plt.savefig(save+'/section.pdf',format='pdf')
+        if save == False:
+            plt.show()
 
         plt.show()
 
@@ -485,3 +499,30 @@ def fft(tr, freqmin=0.0, freqmax=2.0):
     ax[1].set_ylabel('|Y(freq)|')
     ax[1].grid()
     plt.show()
+
+def express_plot(st, **kwargs):
+    phase_list = kwargs.get('phase_list',['P'])
+    name = os.getcwd().split('/')[-1]
+    fig_dir = '/home/samhaug/work1/Figures/'
+    if os.path.exists(fig_dir+name):
+        #os.rmdir(fig_dir+name)
+        shutil.rmtree(fig_dir+name)
+    os.mkdir(fig_dir+name)
+
+    vespagram(st,phase_list=phase_list,save=fig_dir+name)
+    section(st,shift=True,save=fig_dir+name)
+    mapplot.source_reciever_plot(st,save=fig_dir+name)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

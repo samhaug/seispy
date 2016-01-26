@@ -4,8 +4,10 @@ import numpy as np
 import obspy
 from mpl_toolkits.basemap import Basemap
 from obspy.imaging.beachball import Beach
+import matplotlib
 from matplotlib import pyplot as plt
 import os
+import myplot.basemap
 
 def mapplot(**kwargs):
    """
@@ -68,8 +70,11 @@ def source_reciever_plot(st, **kwargs):
    """
    Plot source and reciever on map
    """
+   save = kwargs.get('save',False)
+
+   topo = kwargs.get('topo',False)
    m = mapplot()
-   m.drawparallels(np.arange(-80.,81.,20.))
+   m.drawparallels(np.arange(-80.,81.,20.),labels=[True])
    m.drawmeridians(np.arange(-180.,181.,20.))
    source_coord = add_source(st,m)
    coord_list = stat_coord(st)
@@ -81,7 +86,13 @@ def source_reciever_plot(st, **kwargs):
    ax = plt.gca()
    ax.set_title('{} \n Depth (km): {} '.format(
                title[5],round(st[0].stats.sac['evdp'],3)))
-   plt.show()
+   if topo != False:
+       myplot.basemap.drawtopography(m,alpha=0.5,cmap=matplotlib.cm.gray)
+
+   if save != False:
+       plt.savefig(save+'/map.pdf',format='pdf')
+   if save == False:
+       plt.show()
 
 
 
