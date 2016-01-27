@@ -212,7 +212,7 @@ def vespagram(st_in,**kwargs):
             for idx, ii in enumerate(arrivals):
                 p = ii.ray_param_sec_degree-P_slowness
                 time = ii.time-P_time
-                ax.scatter(time,p,s=22,marker='D',c='w')
+                ax.scatter(time,p,s=22,marker='D',c='w',zorder=20)
                 #ax.text(time,p,ii.name,fontsize=16,color=text_color)
 
 
@@ -235,7 +235,7 @@ def vespagram(st_in,**kwargs):
 
     image_0 = ax[0].imshow(np.log(vesp_y),aspect='auto',interpolation='lanczos',
             extent=[window_tuple[0],window_tuple[1],-1.5,1.5],
-            cmap='gnuplot',vmin=-6,vmax=-2)
+            cmap='inferno',vmin=-6,vmax=-2)
 
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
@@ -249,7 +249,7 @@ def vespagram(st_in,**kwargs):
 
     image_1 = ax[1].imshow(np.log(vesp_y), aspect='auto',
             interpolation='lanczos', extent=[window_tuple[0],
-            window_tuple[1],-1.5,1.5],cmap='gnuplot', vmin=-6,vmax=-2)
+            window_tuple[1],-1.5,1.5],cmap='inferno', vmin=-6,vmax=-2)
 
     cbar_0 = fig.colorbar(image_0,ax=ax[0])
     cbar_0.set_label('Log(Normalized seismic energy)')
@@ -273,8 +273,14 @@ def vespagram(st_in,**kwargs):
                   round(mn_r,3), os.getcwd().split('-')[3],
                   str(n_root)))
 
+    if phase_list:
+       phase_plot(ax[0],evdp,mn_r,phase_list,text_color='green')
+       phase_plot(ax[1],evdp,mn_r,phase_list,text_color='green')
+       #phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
+
     if save != False:
         plt.savefig(save+'/vespagram.pdf',format='pdf')
+
     time_vec = np.linspace(window_tuple[0], window_tuple[1],
                num=vesp_R.shape[1])
 
@@ -296,14 +302,9 @@ def vespagram(st_in,**kwargs):
                    round(st[0].stats.sac['evdp'],3),round(mn_r,3),
                    os.getcwd().split('-')[3]))
 
-    if phase_list:
-       phase_plot(ax[0],evdp,mn_r,phase_list,text_color='green')
-       phase_plot(ax[1],evdp,mn_r,phase_list,text_color='green')
-       phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
-
     if save != False:
         plt.savefig(save+'/wave.pdf',format='pdf')
-    if save == False:
+    else:
         plt.show()
 
 def plot(tr,**kwargs):
@@ -501,7 +502,7 @@ def fft(tr, freqmin=0.0, freqmax=2.0):
     plt.show()
 
 def express_plot(st, **kwargs):
-    phase_list = kwargs.get('phase_list',['P'])
+    phase_list = kwargs.pop('phase_list',['P'])
     name = os.getcwd().split('/')[-1]
     fig_dir = '/home/samhaug/work1/Figures/'
     if os.path.exists(fig_dir+name):
@@ -509,9 +510,13 @@ def express_plot(st, **kwargs):
         shutil.rmtree(fig_dir+name)
     os.mkdir(fig_dir+name)
 
-    vespagram(st,phase_list=phase_list,save=fig_dir+name)
+    #vespagram(st,phase_list=phase_list,save=fig_dir+name)
+    vespagram(st,phase_list=['P','pP','sP','S660P','S860P','S1260P','S1060P',
+                          'S1460P','S1660P'],window_tuple=(-10,200),
+                           save=fig_dir+name)
     section(st,shift=True,save=fig_dir+name)
     mapplot.source_reciever_plot(st,save=fig_dir+name)
+    st.write(fig_dir+name+'/'+name+'.SAC',format='SAC')
 
 
 

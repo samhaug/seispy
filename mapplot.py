@@ -8,6 +8,35 @@ import matplotlib
 from matplotlib import pyplot as plt
 import os
 import myplot.basemap
+import h5py
+from obspy.imaging.beachball import Beachball
+
+cmt = h5py.File('/home/samhaug/Utils/CMT_catalog/cmt.h5','r')
+
+def beachball(tr, **kwargs):
+   plot = kwargs.get('plot',True)
+   coord = kwargs.get('xy',(0,0))
+   w = kwargs.get('width',(900000,900000))
+
+   ymd = str(tr.stats.starttime+tr.stats.sac['o']).split('-')
+   hm = str(tr.stats.starttime+tr.stats.sac['o']).split(':')
+
+   lat = str(round(tr.stats.sac['evla']))
+   lon = str(round(tr.stats.sac['evlo']))
+
+   year = str(ymd[0])
+   month = str(ymd[1])
+   day = str(ymd[2][0:2])
+
+   hour = str(hm[0][-2:])
+   min = str(hm[1])
+
+   key = '{}_{}_{}_{}_{}_{}_{}'.format(year,month,day,hour,min,lat,lon)
+
+   if plot == 'map':
+       return Beach(list(cmt[key][...]),width=w,xy=coord)
+   #else:
+   #    Beachball(list(cmt[key][...]))
 
 def mapplot(**kwargs):
    """
@@ -50,7 +79,7 @@ def add_source(st, map, **kwargs):
     #bball = Beach(focmecs, xy=(x, y),width=500000, linewidth=1, alpha=0.85)
     #bball.set_zorder(10)
     #ax.add_collection(bball)
-    map.scatter(x,y,c='red',s=90,marker='*',lw=0.2)
+    #map.scatter(x,y,c='red',s=90,marker='*',lw=0.2)
     return coord
 
 def add_station(coord_list, map, **kwargs):
@@ -71,8 +100,8 @@ def source_reciever_plot(st, **kwargs):
    Plot source and reciever on map
    """
    save = kwargs.get('save',False)
-
    topo = kwargs.get('topo',False)
+
    m = mapplot()
    m.drawparallels(np.arange(-80.,81.,20.),labels=[True])
    m.drawmeridians(np.arange(-180.,181.,20.))
@@ -84,6 +113,11 @@ def source_reciever_plot(st, **kwargs):
        coord_list[1][ii],coord_list[0][ii],c='k',lw=0.3,alpha=0.3)
    title = os.getcwd().split('/')
    ax = plt.gca()
+   x,y = m(st[0].stats.sac['evlo'],st[0].stats.sac['evla'])
+
+   b = beachball(st[0],xy=(x,y),plot='map')
+   b.set_zorder(2)
+   ax.add_collection(b)
    ax.set_title('{} \n Depth (km): {} '.format(
                title[5],round(st[0].stats.sac['evdp'],3)))
    if topo != False:
