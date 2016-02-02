@@ -30,6 +30,17 @@ import multiprocessing
 import shutil
 from seispy import mapplot
 
+ppt_font =  {'family' : 'sans-serif',
+             'style' : 'normal',
+             'variant' : 'normal',
+             'weight' : 'bold',
+             'size' : 'xx-large'}
+paper_font =  {'family' : 'serif',
+             'style' : 'normal',
+             'variant' : 'normal',
+             'weight' : 'medium',
+             'size' : 'large'}
+
 def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
     '''
     Produce colorbar of PKPdf scatterers from Mancinelli & Shearer 2011
@@ -69,7 +80,7 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
         lat = receiver_latitude(tr)
         if 120. <= lat <= 145.:
             tr.differentiate()
-            tr.filter('bandpass',freqmin=0.3,freqmax=2.5)
+            #tr.filter('bandpass',freqmin=0.3,freqmax=2.5)
             arrivals = model.get_travel_times(source_depth_in_km=event_depth,
                        distance_in_degree = lat, phase_list = ['PKiKP'])
             PKiKP = arrivals[0].time+time_offset
@@ -101,7 +112,7 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
     fig, (ax,ax1) = plt.subplots(1,2,figsize=plt.figaspect(0.5))
 
     # Waveform axis
-    for ii in range(0,waveform_array.shape[0])[::-1]:
+    for ii in range(0,waveform_array.shape[0])[::-5]:
         waveform_array[ii,:] += (120+(ii/10.))
         base = (120+(ii/10.))*np.ones(waveform_array[ii,:].shape)
         #ax.plot(time,waveform_array[ii,:],c='k',lw=0)
@@ -156,10 +167,14 @@ def vespagram(st_in,**kwargs):
 
     window_tuple = kwargs.get('window_tuple',(-10,230))
     window_phase = kwargs.get('window_phase',['P'])
+    window_slowness = kwargs.get('window_slowness',(-1.5,1.5))
     phase_list = kwargs.get('phase_list',False)
     plot_line = kwargs.get('plot_line',False)
     n_root = kwargs.get('n_root',2.0)
     save = kwargs.get('save',False)
+    clim = kwargs.get('clim',(-6,-2))
+    cmap = kwargs.get('cmap','gnuplot')
+    font = kwargs.get('font',paper_font)
 
     st = obspy.core.Stream()
     for idx, tr in enumerate(st_in):
@@ -189,7 +204,7 @@ def vespagram(st_in,**kwargs):
             shift_in_sec = slowness*az
             shift_in_bin = int(shift_in_sec/d)
             x = roll_zero(tr.data,shift_in_bin)
-            R += np.sign(x)*pow(np.abs(x),1.0/n)
+            R += np.sign(x)*pow(np.abs(x),1./n)
         R = R/float(len(st))
         yi = R*pow(abs(R),n-1)
         hil = scipy.fftpack.hilbert(yi)
@@ -215,7 +230,6 @@ def vespagram(st_in,**kwargs):
                 ax.scatter(time,p,s=22,marker='D',c='w',zorder=20)
                 #ax.text(time,p,ii.name,fontsize=16,color=text_color)
 
-
     mn_r = mean_range(st)
     evdp = st[0].stats.sac['evdp']
 
@@ -223,7 +237,7 @@ def vespagram(st_in,**kwargs):
 
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
-    for ii in np.arange(-1.5,1.5,0.1):
+    for ii in np.arange(window_slowness[0],window_slowness[1],0.1):
         yi,R = slant_stack(st,mn_r,ii,n_root)
         vesp_y= np.vstack((vesp_y,yi))
         vesp_R= np.vstack((vesp_R,R))
@@ -234,12 +248,12 @@ def vespagram(st_in,**kwargs):
     fig, ax = plt.subplots(2,sharex=True,figsize=(15,10))
 
     image_0 = ax[0].imshow(np.log(vesp_y),aspect='auto',interpolation='lanczos',
-            extent=[window_tuple[0],window_tuple[1],-1.5,1.5],
-            cmap='inferno',vmin=-6,vmax=-2)
+           extent=[window_tuple[0],window_tuple[1],window_slowness[0],window_slowness[1]],
+           cmap=cmap,vmin=clim[0],vmax=clim[1])
 
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
-    for ii in np.arange(-1.5,1.5,0.1):
+    for ii in np.arange(window_slowness[0],window_slowness[1],0.1):
         yi,R = slant_stack(st,mn_r,ii,1.0)
         vesp_y= np.vstack((vesp_y,yi))
         vesp_R= np.vstack((vesp_R,R))
@@ -248,24 +262,24 @@ def vespagram(st_in,**kwargs):
     vesp_y = vesp_y/ vesp_y.max()
 
     image_1 = ax[1].imshow(np.log(vesp_y), aspect='auto',
-            interpolation='lanczos', extent=[window_tuple[0],
-            window_tuple[1],-1.5,1.5],cmap='inferno', vmin=-6,vmax=-2)
+         interpolation='lanczos', extent=[window_tuple[0],
+         window_tuple[1],window_slowness[0],window_slowness[1]],cmap=cmap, vmin=clim[0],vmax=clim[1])
 
     cbar_0 = fig.colorbar(image_0,ax=ax[0])
-    cbar_0.set_label('Log(Normalized seismic energy)')
+    cbar_0.set_label('Log(Seismic energy)',fontdict=font)
     cbar_1 = fig.colorbar(image_1,ax=ax[1])
-    cbar_1.set_label('Log(Normalized seismic energy)')
+    cbar_1.set_label('Log(Seismic energy)',fontdict=font)
     ax[0].set_xlim(window_tuple)
     ax[1].set_xlim(window_tuple)
     ax[1].xaxis.set(ticks=range(window_tuple[0],window_tuple[1],10))
     ax[0].xaxis.set(ticks=range(window_tuple[0],window_tuple[1],10))
-    ax[0].set_ylim([-1.5,1.5])
-    ax[1].set_ylim([-1.5,1.5])
-    ax[0].grid(color='w',lw=2)
-    ax[1].grid(color='w',lw=2)
-    ax[1].set_ylabel('Slowness (s/deg)')
-    ax[0].set_ylabel('Slowness (s/deg)')
-    ax[1].set_xlabel('Seconds after {}'.format(window_phase[0]))
+    ax[0].set_ylim([window_slowness[0],window_slowness[1]])
+    ax[1].set_ylim([window_slowness[0],window_slowness[1]])
+    ax[0].grid(color='w',lw=2,alpha=0.9)
+    ax[1].grid(color='w',lw=2,alpha=0.9)
+    ax[1].set_ylabel('Slowness (s/deg)',fontdict=font)
+    ax[0].set_ylabel('Slowness (s/deg)',fontdict=font)
+    ax[1].set_xlabel('Seconds after {}'.format(window_phase[0]),fontdict=font)
     ax[0].set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {} \
                      \n Top : N-root = {} Bottom: N-root = 1'
                   .format(st[0].stats.starttime,
@@ -286,7 +300,7 @@ def vespagram(st_in,**kwargs):
 
     figR, axR= plt.subplots(1,figsize=(14,7))
 
-    for idx, ii in enumerate(np.arange(1.5,-1.5,-0.1)):
+    for idx, ii in enumerate(np.arange(window_slowness[0],window_slowness[1],-0.1)):
         vesp_R[idx,:] += ii
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] >= ii,
                          facecolor='goldenrod',alpha=0.5,lw=0.5)
@@ -294,7 +308,7 @@ def vespagram(st_in,**kwargs):
                          facecolor='blue',alpha=0.5,lw=0.5)
 
     axR.set_xlim(window_tuple)
-    axR.set_ylim((-1.6,1.6))
+    axR.set_ylim([window_slowness[0],window_slowness[1]])
     axR.set_ylabel('Slowness (s/deg)')
     axR.set_xlabel('Seconds after P')
     axR.set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {}'
@@ -347,10 +361,74 @@ def plot(tr,**kwargs):
     ax.set_xlabel('Time (s), sampling_rate: {}, npts: {}'
                  .format(tr.stats.sampling_rate,tr.stats.npts))
 
-    if window == True:
-        ax.set_xlim([min(window_list)-300,max(window_list)+300])
+    if window != False:
+        ax.set_xlim([min(window_list)+window[0],max(window_list)+window[1]])
+        #ax.set_xlim([min(window_list)-300,max(window_list)+300])
 
     plt.show()
+
+def component_plot(tr_list,**kwargs):
+    '''
+    Plot three component section
+    '''
+    if tr_list[0].stats.station != tr_list[1].stats.station:
+        print 'Components from different stations'
+    separate = kwargs.get('separate',True)
+    phase_list = kwargs.get('phase_list',[])
+
+    arrivals = model.get_travel_times(
+               distance_in_degree=tr_list[0].stats.sac['gcarc'],
+               source_depth_in_km=tr_list[0].stats.sac['evdp'],
+               phase_list = phase_list)
+    colors = ['b','g','r','c','m','y','k']
+    trace_c = ['k','m','goldenrod']
+
+    if separate:
+        fig, ax = plt.subplots(len(tr_list), sharex=True, sharey=True,
+                               figsize=(23,9))
+        for idx, tr in enumerate(tr_list):
+            t_len = tr.stats.endtime - tr.stats.starttime
+            start = -1*tr.stats.sac['o']
+            end = t_len-tr.stats.sac['o']
+            time = np.linspace(start,end,num=tr.stats.npts)
+            data = tr.data
+            trace = ax[idx].plot(time,data,label=tr.stats.channel,color='k')
+            ax[idx].grid()
+            ax[idx].legend(loc=2)
+            #add arrivals
+            for jdx, ii in enumerate(arrivals):
+                ax[idx].axvline(ii.time,label=ii.name,c=colors[jdx])
+                ax[idx].legend(loc=2)
+
+        ax[-1].set_xlabel('Seconds after event')
+        ax[-1].set_xticks(np.arange(start-50,end,25))
+        ax[0].set_title('{} \n Depth (km): {} Dist (deg): {}, {}'.format(
+         tr_list[0].stats.starttime, str(round(tr_list[0].stats.sac['evdp'],3)),
+         str(round(tr_list[0].stats.sac['gcarc'],3)),os.getcwd().split('-')[3]))
+        plt.show()
+
+    elif separate != True:
+        fig, ax = plt.subplots(figsize=(23,9))
+        for idx, tr in enumerate(tr_list):
+            t_len = tr.stats.endtime - tr.stats.starttime
+            start = -1*tr.stats.sac['o']
+            end = t_len-tr.stats.sac['o']
+            time = np.linspace(start,end,num=tr.stats.npts)
+            data = tr.data
+            trace = ax.plot(time,data,label=tr.stats.channel,color=trace_c[idx])
+            ax.legend(loc=2)
+            #add arrivals
+        for jdx, ii in enumerate(arrivals):
+            ax.axvline(ii.time,label=ii.name,c=colors[jdx])
+            ax.legend(loc=2)
+
+        ax.grid()
+        ax.set_xlabel('Seconds after event')
+        ax.set_xticks(np.arange(start-50,end,25))
+        ax.set_title('{} \n Depth (km): {} Dist (deg): {}, {}'.format(
+         tr_list[0].stats.starttime, str(round(tr_list[0].stats.sac['evdp'],3)),
+         str(round(tr_list[0].stats.sac['gcarc'],3)),os.getcwd().split('-')[3]))
+        plt.show()
 
 def parallel_add_to_axes(trace_tuple):
     '''
@@ -371,6 +449,7 @@ def section(st,**kwargs):
     fill = kwargs.get('fill',False)
     shift = kwargs.get('shift',False)
     save = kwargs.get('save',False)
+    title = kwargs.get('title',True)
 
     def main():
         p_list,name_list,dist_list = p_list_maker(st)
@@ -388,7 +467,8 @@ def section(st,**kwargs):
 
         if shift:
             ax.set_xlabel('Seconds')
-        ax.set_title('Start: {} \n Depth (km): {}, Channel; {}, {}'.format(
+        if title == True:
+            ax.set_title('Start: {} \n Depth (km): {}, Channel; {}, {}'.format(
                  st[0].stats.starttime,
                  round(st[0].stats.sac['evdp'],3),
                  st[0].stats.channel,
@@ -409,8 +489,8 @@ def section(st,**kwargs):
 
     def phase_plot(lim_tuple,ref_degree,evdp,phases,ax):
         arrivals = model.get_travel_times(distance_in_degree=ref_degree,
-        source_depth_in_km=evdp,
-        phase_list = phases)
+                   source_depth_in_km=evdp,
+                   phase_list = phases)
         if len(arrivals) != 0:
             colors = ['b','g','r','c','m','y','k']
             for idx, ii in enumerate(arrivals):
@@ -442,16 +522,19 @@ def section(st,**kwargs):
         name_list = []
         dist_list = []
         for tr in st:
-            data = tr.data
             o = tr.stats.sac['o']
-            if shift:
-                o = 0
-            time = np.linspace(-1*o,(tr.stats.delta*tr.stats.npts)-o,
-                   num=tr.stats.npts)
-            dist = tr.stats.sac['gcarc']
+            data = tr.data
+            start = tr.stats.starttime+o
+            end = tr.stats.endtime+o
+            arrivals = model.get_travel_times(
+                   distance_in_degree=tr.stats.sac['gcarc'],
+                   source_depth_in_km=tr.stats.sac['evdp'],
+                   phase_list = ['P'])
+            p_time = arrivals[0].time+o
+            time = np.linspace(-1*p_time,end-start-p_time,num=tr.stats.npts)
             name_list.append(str(tr.stats.network)+'.'+str(tr.stats.station))
-            dist_list.append(dist)
-            p_list.append((data,time,dist))
+            dist_list.append(tr.stats.sac['gcarc'])
+            p_list.append((data,time,tr.stats.sac['gcarc']))
         return p_list,name_list,dist_list
 
     def ax_limits(p_list):

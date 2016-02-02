@@ -65,7 +65,7 @@ def dirty_filter(st,**kwargs):
         P = arrivals[0]
         t = tr.stats.starttime
         o = tr.stats.sac['o']
-        max_P = abs(tr.slice(t+P.time-10+o, t+P.time+10+o).data).max()
+        max_P = abs(tr.slice(t+P.time-3+o, t+P.time+3+o).data).max()
         pre_noise = abs(tr.slice(t+P.time-a+o, t+P.time-b+o).data).max()
         post_noise = abs(tr.slice(t+P.time+c+o, t+P.time+d+o).data).max()
         if (pre_noise > max_P*pre_limit) or (post_noise > max_P*post_limit):
@@ -102,6 +102,9 @@ def gimp_filter(st):
     for tr in st:
         if tr.data.shape[0] < mx_len-10:
             st.remove(tr)
+        elif np.isnan(sum(tr.data)):
+            st.remove(tr)
+
 
     mn_len = min_len(st)
 

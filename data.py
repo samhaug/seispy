@@ -4,6 +4,7 @@ import scipy
 import obspy
 import numpy as np
 from obspy.taup import TauPyModel
+from matplotlib import pyplot as plt
 model = TauPyModel(model="premd")
 
 ###############################################################################
@@ -30,6 +31,7 @@ def align_on_phase(st, **kwargs):
     Use to precisely align seismogram on phase
     '''
     phase = kwargs.get('phase',['P'])
+    a_min = kwargs.get('min',False)
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)
@@ -46,12 +48,18 @@ def align_on_phase(st, **kwargs):
         P = arrivals[0]
         t = tr.stats.starttime
         o = tr.stats.sac['o']
-        t+P.time+o
-        window_data = (tr.slice(t+P.time-15+o,t+P.time+15+o).data)
-        max_P = window_data[window_data < 0].min()
-        imax = np.argmin(np.abs(max_P-window_data))
-        shift = int(len(window_data)/2.)-imax
-        tr.data = np.roll(tr.data,(1*shift))
+        window_data = (tr.slice(t+P.time-5+o,t+P.time+5+o).data)
+        if a_min:
+            min_P = window_data[window_data<0].min()
+            imin = np.argmin(np.abs(min_P-window_data))
+            shift = int(len(window_data)/2.)-imin
+            tr.data = np.roll(tr.data,(1*shift))
+        else:
+            max_P = window_data.max()
+            imax = np.argmin(np.abs(max_P-window_data))
+            shift = int(len(window_data)/2.)-imax
+            tr.data = np.roll(tr.data,(1*shift))
+
     return st
 
 ###############################################################################
@@ -161,4 +169,42 @@ def waterlevel_deconvolve(tr):
         raise ValueError('NaN in deconvolved trace')
 
     return [stats_dict,out]
+
+def RT_ratio(stt,str):
+    '''
+    find ratio of Radial to Transverse component for every azimuth
+    '''
+    rtlist = []
+    for idx,tr in enumerate(stt):
+        if tr.stats.station != str[idx].stats.station:
+            print 'Mismatch'
+            continue
+        trt = phase_window(tr,['S'],(-10,10))
+        trr = phase_window(str[idx],['S'],(-10,10))
+        T = trt.data.max()
+        R = trr.data.max()
+        diff = (T-R)**2
+        dist = tr.stats.sac['gcarc']
+        rtlist.append([diff,dist])
+        rtarray = np.array(rtlist)
+
+    fig, ax = plt.subplots()
+    ax.scatter(rtarray[:,1],np.log(rtarray[:,0]),alpha=0.8,marker='D')
+    #ax.set_ylim(np.log(rtarray[:,0]).mean()-20,np.log(rtarray[:,0].mean()+20))
+    ax.set_xlabel('Source reciever azimuthal distance (deg)')
+    ax.set_ylabel(u'$log((Amplitude(S_{T})-Amplitude(S_{R}))^{2})$')
+    ax.grid()
+    coeff = np.polyfit(rtarray[:,1],np.log(rtarray[:,0]),1)
+    p = np.poly1d(coeff)
+    x = np.linspace(rtarray[:,1].min(),rtarray[:,1].max())
+    plt.plot(x,p(x),c='k')
+    plt.show()
+
+
+
+
+
+
+
+
 

@@ -115,9 +115,13 @@ def source_reciever_plot(st, **kwargs):
    ax = plt.gca()
    x,y = m(st[0].stats.sac['evlo'],st[0].stats.sac['evla'])
 
-   b = beachball(st[0],xy=(x,y),plot='map')
-   b.set_zorder(2)
-   ax.add_collection(b)
+   try:
+       b = beachball(st[0],xy=(x,y),plot='map')
+       b.set_zorder(2)
+       ax.add_collection(b)
+   except KeyError:
+       print('No focal mechanism found')
+
    ax.set_title('{} \n Depth (km): {} '.format(
                title[5],round(st[0].stats.sac['evdp'],3)))
    if topo != False:
