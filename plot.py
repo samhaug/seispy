@@ -29,6 +29,7 @@ from cycler import cycler
 import multiprocessing
 import shutil
 from seispy import mapplot
+from seispy import data
 
 ppt_font =  {'family' : 'sans-serif',
              'style' : 'normal',
@@ -375,37 +376,59 @@ def component_plot(tr_list,**kwargs):
         print 'Components from different stations'
     separate = kwargs.get('separate',True)
     phase_list = kwargs.get('phase_list',[])
+    window_tuple = kwargs.get('window_tuple',False)
 
     arrivals = model.get_travel_times(
                distance_in_degree=tr_list[0].stats.sac['gcarc'],
                source_depth_in_km=tr_list[0].stats.sac['evdp'],
                phase_list = phase_list)
-    colors = ['b','g','r','c','m','y','k']
+    colors = ['b','g','r','c','m','y','k','b','g','r','c','m','y']
     trace_c = ['k','m','goldenrod']
 
     if separate:
-        fig, ax = plt.subplots(len(tr_list), sharex=True, sharey=True,
-                               figsize=(23,9))
+        fig, ax = plt.subplots(len(tr_list), sharey=True,sharex=True,
+                               figsize=(23,15))
         for idx, tr in enumerate(tr_list):
             t_len = tr.stats.endtime - tr.stats.starttime
             start = -1*tr.stats.sac['o']
             end = t_len-tr.stats.sac['o']
             time = np.linspace(start,end,num=tr.stats.npts)
             data = tr.data
-            trace = ax[idx].plot(time,data,label=tr.stats.channel,color='k')
+            trace = ax[idx].plot(time,data,color='k',zorder=99)
+            ax[idx].text(1, 1, tr.stats.channel,
+                           horizontalalignment='right',
+                           verticalalignment='bottom',
+                           transform=ax[idx].transAxes,
+                           size='x-large')
             ax[idx].grid()
             ax[idx].legend(loc=2)
+            ax[idx].set_xticks(np.arange(time[0],time[-1],25))
             #add arrivals
             for jdx, ii in enumerate(arrivals):
                 ax[idx].axvline(ii.time,label=ii.name,c=colors[jdx])
                 ax[idx].legend(loc=2)
 
+        t_len = tr_list[0].stats.endtime - tr_list[0].stats.starttime
+        start = -1*tr_list[0].stats.sac['o']
+        end = t_len-tr_list[0].stats.sac['o']
+        if window_tuple:
+            ax[0].set_xlim((arrivals[0].time+window_tuple[0],
+                        arrivals[0].time+window_tuple[1]))
+            ax[1].set_xlim((arrivals[0].time+window_tuple[0],
+                        arrivals[0].time+window_tuple[1]))
         ax[-1].set_xlabel('Seconds after event')
-        ax[-1].set_xticks(np.arange(start-50,end,25))
-        ax[0].set_title('{} \n Depth (km): {} Dist (deg): {}, {}'.format(
-         tr_list[0].stats.starttime, str(round(tr_list[0].stats.sac['evdp'],3)),
-         str(round(tr_list[0].stats.sac['gcarc'],3)),os.getcwd().split('-')[3]))
+        ax[0].set_title('{} \n Depth (km): {} Dist (deg): {}, Az (deg): {}, {}, {}'.format(
+              tr_list[0].stats.starttime,
+              str(round(tr_list[0].stats.sac['evdp'],3)),
+              str(round(tr_list[0].stats.sac['gcarc'],3)),
+              str(round(tr_list[0].stats.sac['az'],3)),
+              tr_list[0].stats.network+tr_list[0].stats.station,
+              os.getcwd().split('-')[3]))
+        for ii in ax:
+            ii.ticklabel_format(style='sci',scilimits=(0,0),axis='y')
         plt.show()
+
+
 
     elif separate != True:
         fig, ax = plt.subplots(figsize=(23,9))
@@ -422,12 +445,21 @@ def component_plot(tr_list,**kwargs):
             ax.axvline(ii.time,label=ii.name,c=colors[jdx])
             ax.legend(loc=2)
 
+        t_len = tr[0].stats.endtime - tr[0].stats.starttime
+        start = -1*tr[0].stats.sac['o']
+        end = t_len-tr[0].stats.sac['o']
+        if window_tuple:
+            ax.set_xlim((start+arrivals[0].time+window_tuple[0],
+                        start+arrivals[0].time+window_tuple[1]))
         ax.grid()
         ax.set_xlabel('Seconds after event')
         ax.set_xticks(np.arange(start-50,end,25))
-        ax.set_title('{} \n Depth (km): {} Dist (deg): {}, {}'.format(
-         tr_list[0].stats.starttime, str(round(tr_list[0].stats.sac['evdp'],3)),
-         str(round(tr_list[0].stats.sac['gcarc'],3)),os.getcwd().split('-')[3]))
+        ax.set_title('{} \n Depth (km): {} Dist (deg): {}, Az (deg): {}, {}'.format(
+            tr_list[0].stats.starttime,
+            str(round(tr_list[0].stats.sac['evdp'],3)),
+            str(round(tr_list[0].stats.sac['gcarc'],3)),
+            str(round(tr_list[0].stats.sac['baz'],3)),
+            os.getcwd().split('-')[3]))
         plt.show()
 
 def parallel_add_to_axes(trace_tuple):
@@ -450,17 +482,28 @@ def section(st,**kwargs):
     shift = kwargs.get('shift',False)
     save = kwargs.get('save',False)
     title = kwargs.get('title',True)
+    x_lim = kwargs.get('x_lim',(-50,1000))
 
     def main():
         p_list,name_list,dist_list = p_list_maker(st)
         lim_tuple = ax_limits(p_list)
 
         fig, ax = plt.subplots(figsize =(10,15))
+        ax.set_xlim((x_lim[0],x_lim[1]))
         for ii in p_list:
             add_to_axes(ii,ax)
 
         if phases != False:
-            phase_plot(lim_tuple,50.,st[0].stats.sac['evdp'],phases,ax)
+            range_list = []
+            for tr in st:
+                tr.stats.location = tr.stats.sac['gcarc']
+            st.sort(['location'])
+            ymin = st[0].stats.location
+            ymax = st[-1].stats.location
+            t = st[len(st)/2]
+            phase_plot(lim_tuple,70.,t.stats.sac['evdp'],phases,ax,
+                       t.stats.sac['o'])
+            ax.set_ylim((ymin-2,ymax+2))
 
         ax.set_ylabel('Distance (deg)')
         ax.set_xlabel('Seconds After Event')
@@ -487,18 +530,24 @@ def section(st,**kwargs):
 
         plt.show()
 
-    def phase_plot(lim_tuple,ref_degree,evdp,phases,ax):
+    def phase_plot(lim_tuple,ref_degree,evdp,phases,ax,o):
         arrivals = model.get_travel_times(distance_in_degree=ref_degree,
                    source_depth_in_km=evdp,
                    phase_list = phases)
+        P = model.get_travel_times(distance_in_degree=ref_degree,
+                   source_depth_in_km=evdp,
+                   phase_list = ['P'])
+        P_slow = P[0].ray_param_sec_degree
+        P_time = P[0].time
+        ax.axvline(0,c='b',alpha=0.2,lw=2.0)
         if len(arrivals) != 0:
-            colors = ['b','g','r','c','m','y','k']
+            colors = ['b','g','r','c','m','y','b','g','r','c']
             for idx, ii in enumerate(arrivals):
-                p = ii.ray_param_sec_degree
-                time = ii.time
-                x = np.linspace(time-1000,time+1000)
+                p =  ii.ray_param_sec_degree - P_slow
+                time = ii.time-P_time
+                x = np.linspace(time-50,time+500)
                 y = (1/p)*(x-time)+ref_degree
-                ax.plot(x,y,alpha=0.3,label=ii.name,c=colors[idx])
+                ax.plot(x,y,alpha=0.2,label=ii.name,c=colors[idx],lw=2.0)
                 ax.legend()
 
     def plotter(art,lim_tuple,ax):
@@ -549,6 +598,33 @@ def section(st,**kwargs):
         return ([min_time,max_time],[min_range-3,max_range+3])
 
     main()
+
+def az_section(st, phase, **kwargs):
+    '''
+    Plot traces as a function of azimuthal change
+    '''
+    window_tuple = kwargs.get('window_tuple',(-40,40))
+    tr_list = []
+    for tr in st:
+        d = data.phase_window(tr,['S'],window_tuple).normalize().data
+        az = round(tr.stats.sac['az'],3)
+        tr_list.append((az,d))
+
+
+    fig, ax = plt.subplots(figsize=(10,15))
+    ax.set_ylabel('Source-reciever azimuth')
+    ax.set_xlabel('Seconds after PREM predicted {} phase'.format(phase[0]))
+    ax.set_title('{} \n Channel: {}, Depth: {} km'.format(
+                 st[10].stats.starttime,
+                 st[10].stats.channel,
+                 round(st[10].stats.sac['evdp'],3)))
+    ax.grid()
+
+    for ii in tr_list:
+        time = np.linspace(window_tuple[0],window_tuple[1],
+                           num=len(ii[1]))
+        ax.plot(time,ii[0]+ii[1],'k',alpha=0.5)
+    plt.show()
 
 def fft(tr, freqmin=0.0, freqmax=2.0):
     '''

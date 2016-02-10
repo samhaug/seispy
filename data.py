@@ -31,7 +31,7 @@ def align_on_phase(st, **kwargs):
     Use to precisely align seismogram on phase
     '''
     phase = kwargs.get('phase',['P'])
-    a_min = kwargs.get('min',False)
+    a_min = kwargs.get('min',True)
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)
@@ -48,9 +48,9 @@ def align_on_phase(st, **kwargs):
         P = arrivals[0]
         t = tr.stats.starttime
         o = tr.stats.sac['o']
-        window_data = (tr.slice(t+P.time-5+o,t+P.time+5+o).data)
+        window_data = (tr.slice(t+P.time-10+o,t+P.time+10+o).data)
         if a_min:
-            min_P = window_data[window_data<0].min()
+            min_P = window_data.min()
             imin = np.argmin(np.abs(min_P-window_data))
             shift = int(len(window_data)/2.)-imin
             tr.data = np.roll(tr.data,(1*shift))
