@@ -137,7 +137,6 @@ def rz_2_ps(str,stz):
             deg = np.arctan2(R,Z)
         else:
             deg = -1*np.arctan2(R,Z)
-        print R, Z
 
         sts[idx].data = np.cos(deg)*tr.data-np.sin(deg)*stz[idx].data
         stp[idx].data = np.sin(deg)*tr.data+np.cos(deg)*stz[idx].data

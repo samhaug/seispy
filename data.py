@@ -32,6 +32,7 @@ def align_on_phase(st, **kwargs):
     '''
     phase = kwargs.get('phase',['P'])
     a_min = kwargs.get('min',True)
+    window_tuple = kwargs.get('window_tuple',(-10,10))
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)
@@ -48,7 +49,8 @@ def align_on_phase(st, **kwargs):
         P = arrivals[0]
         t = tr.stats.starttime
         o = tr.stats.sac['o']
-        window_data = (tr.slice(t+P.time-10+o,t+P.time+10+o).data)
+        window_data = (tr.slice(t+P.time+window_tuple[0]+o,
+                        t+P.time+window_tuple[1]+o).data)
         if a_min:
             min_P = window_data.min()
             imin = np.argmin(np.abs(min_P-window_data))

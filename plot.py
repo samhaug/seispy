@@ -475,6 +475,16 @@ def parallel_add_to_axes(trace_tuple):
 def section(st,**kwargs):
     '''
     Plot record section of obspy stream object
+
+    labels = kwargs.get('labels',False)
+    phases = kwargs.get('phase_list',False)
+    fill = kwargs.get('fill',False)
+    shift = kwargs.get('shift',False)
+    save = kwargs.get('save',False)
+    title = kwargs.get('title',True)
+    x_lim = kwargs.get('x_lim',(-50,1000))
+    color = kwargs.get('color',False)
+    picker = kwargs.get('picker',False)
     '''
     labels = kwargs.get('labels',False)
     phases = kwargs.get('phase_list',False)
@@ -483,6 +493,8 @@ def section(st,**kwargs):
     save = kwargs.get('save',False)
     title = kwargs.get('title',True)
     x_lim = kwargs.get('x_lim',(-50,1000))
+    color = kwargs.get('color',False)
+    picker = kwargs.get('picker',False)
 
     def main():
         p_list,name_list,dist_list = p_list_maker(st)
@@ -490,7 +502,7 @@ def section(st,**kwargs):
 
         fig, ax = plt.subplots(figsize =(10,15))
         ax.set_xlim((x_lim[0],x_lim[1]))
-        for ii in p_list:
+        for idx,ii in enumerate(p_list):
             add_to_axes(ii,ax)
 
         if phases != False:
@@ -522,13 +534,31 @@ def section(st,**kwargs):
             ax_n.set_yticks(dist_list)
             ax_n.set_yticklabels(name_list)
             ax_n.set_ylim(y1,y2)
+            for ii in dist_list:
+                ax.axhline(ii,alpha=0.5,c='k')
+
+        if picker == True:
+            rmfile = file('./REMOVE_LIST','w')
+            remove_list = []
+            def on_pick(event):
+                artist = event.artist
+                artist.set_c('white')
+                artist.set_alpha(0.0)
+                remove_list.append(artist.get_label())
+                fig.canvas.draw()
+            fig.canvas.mpl_connect('pick_event', on_pick)
+            plt.show()
+            for tr in st:
+                if tr.stats.network+'.'+tr.stats.station in remove_list:
+                    st.remove(tr)
+            for item in remove_list:
+                rmfile.write("%s\n" % item)
+            rmfile.close()
 
         if save != False:
             plt.savefig(save+'/section.pdf',format='pdf')
         if save == False:
             plt.show()
-
-        plt.show()
 
     def phase_plot(lim_tuple,ref_degree,evdp,phases,ax,o):
         arrivals = model.get_travel_times(distance_in_degree=ref_degree,
@@ -550,21 +580,20 @@ def section(st,**kwargs):
                 ax.plot(x,y,alpha=0.2,label=ii.name,c=colors[idx],lw=2.0)
                 ax.legend()
 
-    def plotter(art,lim_tuple,ax):
-        ax.grid()
-        ax.set_xlim(lim_tuple[0])
-        ax.set_ylim(lim_tuple[1])
-        for ii in art:
-            ax.add_line(ii)
-
     def add_to_axes(trace_tuple,ax):
         data = trace_tuple[0]
         time = trace_tuple[1]
         dist = trace_tuple[2]
-        ax.plot(time,data+dist,alpha=0.5,c='k',lw=1)
+        name = trace_tuple[3]
+        if color == True:
+            ax.plot(time,data+dist,alpha=0.5,lw=1,picker=5,label=name)
         if fill:
             ax.fill_between(time, dist, data+dist, where=data+dist <= dist,
-                            facecolor='k', alpha=0.5, interpolate=True)
+                            facecolor='r', alpha=0.5, interpolate=True)
+            ax.fill_between(time, dist, data+dist, where=data+dist >= dist,
+                            facecolor='g', alpha=0.5, interpolate=True)
+        else:
+            ax.plot(time,data+dist,alpha=0.5,c='k',lw=1,picker=5,label=name)
 
     def p_list_maker(st):
         p_list = []
@@ -581,9 +610,10 @@ def section(st,**kwargs):
                    phase_list = ['P'])
             p_time = arrivals[0].time+o
             time = np.linspace(-1*p_time,end-start-p_time,num=tr.stats.npts)
-            name_list.append(str(tr.stats.network)+'.'+str(tr.stats.station))
-            dist_list.append(tr.stats.sac['gcarc'])
-            p_list.append((data,time,tr.stats.sac['gcarc']))
+            name = (str(tr.stats.network)+'.'+str(tr.stats.station))
+            name_list.append(name)
+            dist_list.append(tr.stats.sac['gcarc']+tr.data[0])
+            p_list.append((data,time,tr.stats.sac['gcarc'],name))
         return p_list,name_list,dist_list
 
     def ax_limits(p_list):
