@@ -26,7 +26,6 @@ def rotate_tr(tr_n, tr_e, **kwargs):
     '''
     Rotate trace from NE to RT coordinates
     '''
-
     tr_r = tr_n.copy()
     tr_t = tr_n.copy()
 
@@ -36,26 +35,29 @@ def rotate_tr(tr_n, tr_e, **kwargs):
     tr_r.data = r
     tr_t.data = t
 
-    tr_r.channel = 'BHR'
-    tr_t.channel = 'BHT'
+    tr_r.stats.location = tr_n.stats.sac['gcarc']
+    tr_t.stats.location = tr_n.stats.sac['gcarc']
+
+    tr_r.stats.azimuth = tr_n.stats.sac['az']
+    tr_t.stats.azimuth = tr_t.stats.sac['az']
+
+    tr_r.stats.channel = 'BHR'
+    tr_t.stats.channel = 'BHT'
 
     return tr_r, tr_t
 
-def rotate_st(st_n, st_e, **kwargs):
+def rotate_st(stn, ste, **kwargs):
     '''
     Use sorted streams to rotate components
     '''
+    str = obspy.core.Stream()
+    stt = obspy.core.Stream()
 
-    n_dict, e_dict = make_dict(st_n,st_e)
-    st_r = obspy.core.Stream()
-    st_t = obspy.core.Stream()
-
-    for keys in n_dict:
-        if keys in e_dict:
-            tr_r, tr_t = rotate_tr(n_dict[keys],e_dict[keys])
-            st_r.append(tr_r)
-            st_t.append(tr_t)
-    return st_r, st_t
+    for idx,tr in enumerate(stn):
+        trr, trt = rotate_tr(tr,ste[idx])
+        str.append(trr)
+        stt.append(trt)
+    return str, stt
 
 def express_zne():
     '''
@@ -85,45 +87,50 @@ def express_rt():
     stn = filter.gimp_filter(stn)
     ste = filter.gimp_filter(ste)
     stz = filter.gimp_filter(stz)
-    if len(ste[0]) < len(stn[0]):
-        for tr in stn:
-            tr.data = tr.data[0:len(ste[0])]
-    if len(stn[0]) < len(ste[0]):
-        for tr in ste:
-            tr.data = tr.data[0:len(stn[0])]
+
+    stn_name_list = []
+    ste_name_list = []
+    stz_name_list = []
+
+    for tr in stn:
+        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station
+        stn_name_list.append(tr.stats.network+'.'+tr.stats.station)
+    for tr in ste:
+        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station
+        ste_name_list.append(tr.stats.network+'.'+tr.stats.station)
+    for tr in stz:
+        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station
+        stz_name_list.append(tr.stats.network+'.'+tr.stats.station)
+
+    common_name = set(stn_name_list) & set(ste_name_list) & set(stz_name_list)
+
+    for tr in stn:
+        if tr.stats.full_name not in common_name:
+            stn.remove(tr)
+    for tr in ste:
+        if tr.stats.full_name not in common_name:
+            ste.remove(tr)
+    for tr in stz:
+        if tr.stats.full_name not in common_name:
+            stz.remove(tr)
+
+    stz.sort(['full_name'])
+    ste.sort(['full_name'])
+    stn.sort(['full_name'])
+
     str, stt = rotate_st(stn,ste)
 
-    str = filter.gimp_filter(str)
-    stt = filter.gimp_filter(stt)
-    stz = filter.gimp_filter(stz)
+    return str, stt, stz
 
-    for idx, tr in enumerate(str):
-        tr.stats.channel = 'BHR'
-        stt[idx].stats.channel = 'BHT'
-        tr.stats.location = tr.stats.sac['gcarc']
-        stt[idx].stats.location = stt[idx].stats.sac['gcarc']
-        tr.stats.azimuth = tr.stats.sac['az']
-        stt[idx].stats.azimuth = stt[idx].stats.sac['az']
-    z_dict,t_dict =make_dict(stz,stt)
-
-    new_stz = obspy.core.Stream()
-    for ii in t_dict.keys():
-        new_stz += z_dict[ii]
-    str.sort(['station'])
-    stt.sort(['station'])
-    new_stz.sort(['station'])
-
-    return str, stt, new_stz
-
-def rz_2_ps(str,stz):
+def rz_2_lq(str,stz):
     '''
     convert radial/Z component to max P/ max S component
     find maximum P wave amplitude to determine incidence angle for every
     trace
     '''
 
-    stp = stz.copy()
-    sts = str.copy()
+    stl = stz.copy()
+    stq = str.copy()
 
     for idx,tr in enumerate(str):
 
@@ -138,12 +145,12 @@ def rz_2_ps(str,stz):
         else:
             deg = -1*np.arctan2(R,Z)
 
-        sts[idx].data = np.cos(deg)*tr.data-np.sin(deg)*stz[idx].data
-        stp[idx].data = np.sin(deg)*tr.data+np.cos(deg)*stz[idx].data
-        sts[idx].stats.channel = 'BHS'
-        stp[idx].stats.channel = 'BHP'
+        stq[idx].data = np.cos(deg)*tr.data-np.sin(deg)*stz[idx].data
+        stl[idx].data = np.sin(deg)*tr.data+np.cos(deg)*stz[idx].data
+        stq[idx].stats.channel = 'BHS'
+        stl[idx].stats.channel = 'BHP'
 
-    return sts, stp
+    return stl, stq
 
 
 

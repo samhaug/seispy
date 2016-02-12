@@ -523,11 +523,14 @@ def section(st,**kwargs):
         if shift:
             ax.set_xlabel('Seconds')
         if title == True:
-            ax.set_title('Start: {} \n Depth (km): {}, Channel; {}, {}'.format(
-                 st[0].stats.starttime,
-                 round(st[0].stats.sac['evdp'],3),
-                 st[0].stats.channel,
-                 os.getcwd().split('-')[3]))
+            ax.set_title("""Start: {} Coord: ({}$^\circ$,{}$^\circ$)
+Depth (km): {}, Channel: {}, Mag: {}""".format(
+             st[0].stats.starttime.isoformat(),
+             round(st[0].stats.sac['evla'],2),
+             round(st[0].stats.sac['evlo'],2),
+             round(st[0].stats.sac['evdp'],3),
+             st[0].stats.channel,
+             os.getcwd().split('-')[3][-2]+'.'+os.getcwd().split('-')[3][-1]))
         if labels:
             y1, y2 = ax.get_ylim()
             ax_n = ax.twinx()
@@ -585,15 +588,19 @@ def section(st,**kwargs):
         time = trace_tuple[1]
         dist = trace_tuple[2]
         name = trace_tuple[3]
-        if color == True:
+        if color == True and picker == True:
             ax.plot(time,data+dist,alpha=0.5,lw=1,picker=5,label=name)
+        if color == True and picker != True:
+            ax.plot(time,data+dist,alpha=0.5,lw=1)
+        if color != True and picker == True:
+            ax.plot(time,data+dist,alpha=0.5,lw=1,picker=5,label=name)
+        if color != True and picker != True:
+            ax.plot(time,data+dist,alpha=0.5,lw=1,c='k')
         if fill:
             ax.fill_between(time, dist, data+dist, where=data+dist <= dist,
                             facecolor='r', alpha=0.5, interpolate=True)
             ax.fill_between(time, dist, data+dist, where=data+dist >= dist,
                             facecolor='g', alpha=0.5, interpolate=True)
-        else:
-            ax.plot(time,data+dist,alpha=0.5,c='k',lw=1,picker=5,label=name)
 
     def p_list_maker(st):
         p_list = []
