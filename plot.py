@@ -169,6 +169,7 @@ def vespagram(st_in,**kwargs):
     window_tuple = kwargs.get('window_tuple',(-10,230))
     window_phase = kwargs.get('window_phase',['P'])
     window_slowness = kwargs.get('window_slowness',(-1.5,1.5))
+    slowness_tick = kwargs.get('slowness_tick',-0.1)
     phase_list = kwargs.get('phase_list',False)
     plot_line = kwargs.get('plot_line',False)
     n_root = kwargs.get('n_root',2.0)
@@ -210,7 +211,7 @@ def vespagram(st_in,**kwargs):
         yi = R*pow(abs(R),n-1)
         hil = scipy.fftpack.hilbert(yi)
         yi = pow(hil**2+R**2,1/2.)
-        return yi,R*(3.)
+        return yi,R
 
     def phase_plot(ax,evdp,degree,phases,text_color):
         P_arrivals = model.get_travel_times(distance_in_degree = degree,
@@ -234,7 +235,7 @@ def vespagram(st_in,**kwargs):
     mn_r = mean_range(st)
     evdp = st[0].stats.sac['evdp']
 
-    st.normalize()
+    #st.normalize()
 
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
@@ -251,6 +252,7 @@ def vespagram(st_in,**kwargs):
     image_0 = ax[0].imshow(np.log(vesp_y),aspect='auto',interpolation='lanczos',
            extent=[window_tuple[0],window_tuple[1],window_slowness[0],window_slowness[1]],
            cmap=cmap,vmin=clim[0],vmax=clim[1])
+    one_stack = vesp_y
 
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
@@ -265,6 +267,8 @@ def vespagram(st_in,**kwargs):
     image_1 = ax[1].imshow(np.log(vesp_y), aspect='auto',
          interpolation='lanczos', extent=[window_tuple[0],
          window_tuple[1],window_slowness[0],window_slowness[1]],cmap=cmap, vmin=clim[0],vmax=clim[1])
+
+    two_stack = vesp_y
 
     cbar_0 = fig.colorbar(image_0,ax=ax[0])
     cbar_0.set_label('Log(Seismic energy)',fontdict=font)
@@ -289,9 +293,9 @@ def vespagram(st_in,**kwargs):
                   str(n_root)))
 
     if phase_list:
-       phase_plot(ax[0],evdp,mn_r,phase_list,text_color='green')
-       phase_plot(ax[1],evdp,mn_r,phase_list,text_color='green')
-       #phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
+        phase_plot(ax[0],evdp,mn_r,phase_list,text_color='green')
+        phase_plot(ax[1],evdp,mn_r,phase_list,text_color='green')
+        #phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
 
     if save != False:
         plt.savefig(save+'/vespagram.pdf',format='pdf')
@@ -301,12 +305,15 @@ def vespagram(st_in,**kwargs):
 
     figR, axR= plt.subplots(1,figsize=(14,7))
 
-    for idx, ii in enumerate(np.arange(window_slowness[0],window_slowness[1],-0.1)):
+    vesp_R *= 2
+    for idx, ii in enumerate(np.arange(window_slowness[1],window_slowness[0],
+                             slowness_tick)):
         vesp_R[idx,:] += ii
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] >= ii,
                          facecolor='goldenrod',alpha=0.5,lw=0.5)
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] <= ii,
                          facecolor='blue',alpha=0.5,lw=0.5)
+        #axR.plot(time_vec,vesp_R[idx,:])
 
     axR.set_xlim(window_tuple)
     axR.set_ylim([window_slowness[0],window_slowness[1]])
@@ -316,12 +323,16 @@ def vespagram(st_in,**kwargs):
                   .format(st[0].stats.starttime,
                    round(st[0].stats.sac['evdp'],3),round(mn_r,3),
                    os.getcwd().split('-')[3]))
+    axR.set_xticks(np.arange(window_tuple[0],window_tuple[1],10))
+    axR.grid()
+
 
     if save != False:
         plt.savefig(save+'/wave.pdf',format='pdf')
     else:
         plt.show()
 
+    return vesp_R
 def plot(tr,**kwargs):
     '''
     plot trace object
@@ -578,7 +589,7 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
             for idx, ii in enumerate(arrivals):
                 p =  ii.ray_param_sec_degree - P_slow
                 time = ii.time-P_time
-                x = np.linspace(time-50,time+500)
+                x = np.linspace(time-500,time+500)
                 y = (1/p)*(x-time)+ref_degree
                 ax.plot(x,y,alpha=0.2,label=ii.name,c=colors[idx],lw=2.0)
                 ax.legend()

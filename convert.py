@@ -18,12 +18,32 @@ def xh2sac(st):
         tr.stats.sac['evdp'] = tr.stats.xh['source_depth_in_km']
         tr.stats.sac['o'] = 0.
         tr.stats.sac['baz'] = 0.
-        a = float(tr.stats.station.split('_')[0])
-        b = float(tr.stats.station.split('_')[1])
-        tr.stats.sac['gcarc'] = a+(b/1000.)
+        tr.stats.sac['gcarc'] = tr.stats.xh['receiver_latitude']
     return st
 
 def axisem_stations(st):
+    '''
+    Make STATIONS ascii file for a 1D axisem run. remove redundant stations
+    '''
+    for tr in st:
+        tr.stats.location = tr.stats.station+tr.stats.network
+    st.sort(['location'])
+
+    f = open('STATIONS','w')
+    for idx,tr in enumerate(st[:-1]):
+        if tr.stats.station+tr.stats.network == \
+            st[idx+1].stats.station+st[idx].stats.network:
+            continue
+        f.write('{}   {}   {}   {}   {}   {}\n'.format(
+        tr.stats.station,
+        tr.stats.network,
+        round(tr.stats.sac['stla'],2),
+        round(tr.stats.sac['stlo'],2),
+        round(tr.stats.sac['evdp'],2),
+        round(tr.stats.sac['gcarc'],2)))
+    f.close()
+
+def axisem_stations_2D(st):
     '''
     make STATIONS ascii file for use with axisem. Rotate the source receiver
     geometry so that the source is at the north pole
