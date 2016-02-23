@@ -34,13 +34,15 @@ def axisem_stations(st):
         if tr.stats.station+tr.stats.network == \
             st[idx+1].stats.station+st[idx].stats.network:
             continue
-        f.write('{}   {}   {}   {}   {}   {}\n'.format(
+        f.write('{}   {}   {}   {}   {}   {}   {}   {}\n'.format(
         tr.stats.station,
         tr.stats.network,
         round(tr.stats.sac['stla'],2),
         round(tr.stats.sac['stlo'],2),
         round(tr.stats.sac['evdp'],2),
-        round(tr.stats.sac['gcarc'],2)))
+        round(tr.stats.sac['gcarc'],2),
+        round(tr.stats.sac['az'],2),
+        round(tr.stats.sac['baz'],2)))
     f.close()
 
 def axisem_stations_2D(st):

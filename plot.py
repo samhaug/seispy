@@ -310,9 +310,9 @@ def vespagram(st_in,**kwargs):
                              slowness_tick)):
         vesp_R[idx,:] += ii
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] >= ii,
-                         facecolor='goldenrod',alpha=0.5,lw=0.5)
+                         facecolor='purple',alpha=0.8,lw=0.5)
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] <= ii,
-                         facecolor='blue',alpha=0.5,lw=0.5)
+                         facecolor='green',alpha=0.8,lw=0.5)
         #axR.plot(time_vec,vesp_R[idx,:])
 
     axR.set_xlim(window_tuple)
