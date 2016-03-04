@@ -5,7 +5,7 @@ import obspy
 import numpy as np
 from obspy.taup import TauPyModel
 from matplotlib import pyplot as plt
-model = TauPyModel(model="premd")
+model = TauPyModel(model="prem_50")
 
 ###############################################################################
 def phase_window(tr,phases,window_tuple):

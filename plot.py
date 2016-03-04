@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from obspy.taup import TauPyModel
 import obspy.signal.filter
 import obspy.signal
-model = TauPyModel(model="premd")
+model = TauPyModel(model="prem_50")
 from matplotlib import colors, ticker, cm
 from matplotlib.patches import Polygon
 from matplotlib.colors import LogNorm
@@ -174,9 +174,10 @@ def vespagram(st_in,**kwargs):
     plot_line = kwargs.get('plot_line',False)
     n_root = kwargs.get('n_root',2.0)
     save = kwargs.get('save',False)
-    clim = kwargs.get('clim',(-6,-2))
+    clim = kwargs.get('clim',(-3,0))
     cmap = kwargs.get('cmap','gnuplot')
     font = kwargs.get('font',paper_font)
+    plot = kwargs.get('plot',True)
 
     st = obspy.core.Stream()
     for idx, tr in enumerate(st_in):
@@ -240,16 +241,18 @@ def vespagram(st_in,**kwargs):
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
     for ii in np.arange(window_slowness[0],window_slowness[1],0.1):
-        yi,R = slant_stack(st,mn_r,ii,n_root)
+        yi,R = slant_stack(st,mn_r,ii,1.0)
         vesp_y= np.vstack((vesp_y,yi))
         vesp_R= np.vstack((vesp_R,R))
     vesp_y = vesp_y[1::,:]
     vesp_R = vesp_R[1::,:]
     vesp_y = vesp_y/ vesp_y.max()
+    if plot == False:
+        return vesp_y
 
     fig, ax = plt.subplots(2,sharex=True,figsize=(15,10))
 
-    image_0 = ax[0].imshow(np.log(vesp_y),aspect='auto',interpolation='lanczos',
+    image_0 = ax[0].imshow(np.log10(vesp_y),aspect='auto',interpolation='lanczos',
            extent=[window_tuple[0],window_tuple[1],window_slowness[0],window_slowness[1]],
            cmap=cmap,vmin=clim[0],vmax=clim[1])
     one_stack = vesp_y
@@ -257,14 +260,14 @@ def vespagram(st_in,**kwargs):
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
     for ii in np.arange(window_slowness[0],window_slowness[1],0.1):
-        yi,R = slant_stack(st,mn_r,ii,1.0)
+        yi,R = slant_stack(st,mn_r,ii,n_root)
         vesp_y= np.vstack((vesp_y,yi))
         vesp_R= np.vstack((vesp_R,R))
     vesp_y = vesp_y[1::,:]
     vesp_R = vesp_R[1::,:]
     vesp_y = vesp_y/ vesp_y.max()
 
-    image_1 = ax[1].imshow(np.log(vesp_y), aspect='auto',
+    image_1 = ax[1].imshow(np.log10(vesp_y), aspect='auto',
          interpolation='lanczos', extent=[window_tuple[0],
          window_tuple[1],window_slowness[0],window_slowness[1]],cmap=cmap, vmin=clim[0],vmax=clim[1])
 
@@ -286,7 +289,7 @@ def vespagram(st_in,**kwargs):
     ax[0].set_ylabel('Slowness (s/deg)',fontdict=font)
     ax[1].set_xlabel('Seconds after {}'.format(window_phase[0]),fontdict=font)
     ax[0].set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {} \
-                     \n Top : N-root = {} Bottom: N-root = 1'
+                     \n Bottom : N-root = {} Top: N-root = 1'
                   .format(st[0].stats.starttime,
                   round(st[0].stats.sac['evdp'],3),
                   round(mn_r,3), os.getcwd().split('-')[3],

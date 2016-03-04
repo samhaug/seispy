@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 import obspy
+from obspy.signal.rotate import rotate_NE_RT
 import numpy as np
 import filter
 import data
 import seispy.data
 from obspy.taup import TauPyModel
-model = TauPyModel(model="premd")
+model = TauPyModel(model="prem_50")
 
 def make_dict(st_1, st_2, **kwargs):
     '''
@@ -29,8 +30,7 @@ def rotate_tr(tr_n, tr_e, **kwargs):
     tr_r = tr_n.copy()
     tr_t = tr_n.copy()
 
-    r,t = obspy.signal.rotate.rotate_NE_RT(tr_n.data,
-           tr_e.data,tr_n.stats.sac['baz'])
+    r,t = rotate_NE_RT(tr_n.data,tr_e.data,tr_n.stats.sac['baz'])
 
     tr_r.data = r
     tr_t.data = t
@@ -84,9 +84,6 @@ def express_all():
     stn = obspy.read('*BHN*filtered')
     ste = obspy.read('*BHE*filtered')
     stz = obspy.read('*BHZ*filtered')
-    stn = filter.gimp_filter(stn)
-    ste = filter.gimp_filter(ste)
-    stz = filter.gimp_filter(stz)
 
     stn_name_list = []
     ste_name_list = []
@@ -118,9 +115,22 @@ def express_all():
     ste.sort(['full_name'])
     stn.sort(['full_name'])
 
+    stn = filter.gimp_filter(stn)
+    ste = filter.gimp_filter(ste)
+    stz = filter.gimp_filter(stz)
+
+    print len(stn),len(ste),len(stz)
+    if (len(stn[0].data) == len(ste[0].data) == len(stz[0].data)) == False:
+        new_len = min(len(stn[0].data),len(ste[0].data),len(stz[0].data))
+        for idx,tr in enumerate(stn):
+            tr.data = tr.data[0:new_len-1]
+            ste[idx].data = ste[idx].data[0:new_len-1]
+            stz[idx].data = stz[idx].data[0:new_len-1]
+
     str, stt = rotate_st(stn,ste)
 
-    return str, stt, stz, ste, stn
+    return common_name
+    #return  str, stt, stz, ste, stn
 
 def rz_2_lq(str,stz):
     '''

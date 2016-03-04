@@ -4,7 +4,7 @@ import scipy
 import obspy
 from obspy.taup import TauPyModel
 import numpy as np
-model = TauPyModel(model="premd")
+model = TauPyModel(model="prem")
 
 '''
 Samuel Haugland 01/19/16

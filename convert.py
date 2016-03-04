@@ -2,7 +2,41 @@
 
 import numpy as np
 import obspy
+from geopy.distance import great_circle
 
+
+def equalize_start_end(st):
+    '''
+    make all traces in the stream share the same start and end time. Do this
+    by cutting off data from longer streams
+    '''
+    out_st = st.copy()
+    starttime_list = []
+    endtime_list = []
+    for tr in out_st:
+        starttime_list.append(tr.stats.starttime)
+        endtime_list.append(tr.stats.endtime)
+    start = min(starttime_list)
+    end = max(endtime_list)
+    print start, end
+    for tr in out_st:
+        t = tr.stats.starttime
+        e = tr.stats.endtime
+        samp = tr.stats.sampling_rate
+        begin_pad = int(np.abs(t-start)*samp)
+        end_pad = int(np.abs(e-end)*samp)
+        tr.data = np.hstack((np.zeros(begin_pad),tr.data,np.zeros(end_pad)))
+    return out_st
+
+def set_gcarc(st):
+    '''
+    Set gcarc for each trace in stream given station and event lat lon exist
+    '''
+    for tr in st:
+        source = (tr.stats.sac['evla'],tr.stats.sac['evlo'])
+        stat = (tr.stats.sac['stla'],tr.stats.sac['stlo'])
+        tr.stats.sac['gcarc'] = np.abs(great_circle(source,stat).km/111.195)
+    return st
 
 def xh2sac(st):
     '''
@@ -11,14 +45,17 @@ def xh2sac(st):
 
     for tr in st:
         tr.stats.sac = {}
-        tr.stats.sac['evla'] = 0.
-        tr.stats.sac['evlo'] = 0.
+        tr.stats.sac['evla'] = tr.stats.xh['source_latitude']
+        tr.stats.sac['evlo'] = tr.stats.xh['source_longitude']
         tr.stats.sac['stla'] = tr.stats.xh['receiver_latitude']
-        tr.stats.sac['stlo'] = 0.
+        tr.stats.sac['stlo'] = tr.stats.xh['receiver_longitude']
         tr.stats.sac['evdp'] = tr.stats.xh['source_depth_in_km']
         tr.stats.sac['o'] = 0.
-        tr.stats.sac['baz'] = 0.
-        tr.stats.sac['gcarc'] = tr.stats.xh['receiver_latitude']
+        tr.stats.sac['az'] = tr.stats.xh['sensor_azimuth']
+        tr.stats.sac['baz'] = tr.stats.xh['sensor_azimuth']-180
+        source = (tr.stats.xh['source_latitude'],tr.stats.xh['source_longitude'])
+        stat = (tr.stats.xh['receiver_latitude'],tr.stats.xh['receiver_longitude'])
+        tr.stats.sac['gcarc'] = np.abs(great_circle(source,stat).km/111.195)
     return st
 
 def axisem_stations(st):

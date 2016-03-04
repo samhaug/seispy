@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 
 def make_discont(radius,b,sign):
 
-    domain = np.linspace(3480,5771,num=2000)
+    domain = np.linspace(3480,5771,num=1500)
     one = np.exp(-1*(radius-domain[domain<radius])/b)
     two = np.exp(-1*(domain[domain>=radius]-radius)/b)
 
@@ -18,11 +18,11 @@ def make_discont(radius,b,sign):
         two *= -1
     discont = np.hstack((one,two))
     discont = discont/discont.max()
-    return discont,domain,b,radius
+    return discont,domain,b,radius,sign
 
 
-def interp_mantle(discont,domain,v_discont,rho_discont,b,radius):
-    name = '/home/samhaug/PREM_'+str(radius)+'_b_'+str(b)+'_v_'+str(v_discont)+'_rho_'+str(rho_discont)+'.bm'
+def interp_mantle(discont,domain,v_discont,rho_discont,b,radius,sign):
+    name = '/home/samhaug/PREM_'+str(radius)+'_b_'+str(b)+'_v_'+str(v_discont)+'_rho_'+str(rho_discont)+'_'+str(sign)+'.bm'
 
     prem_um = np.loadtxt('prem_um.dat')
     prem_core = np.loadtxt('prem_core.dat')
@@ -87,7 +87,7 @@ def interp_mantle(discont,domain,v_discont,rho_discont,b,radius):
     np.savetxt(full_txt,full,fmt='%1.3f')
     full_txt.close()
 
-discont, domain,b,radius = make_discont(5170,25,'negative')
-interp_mantle(discont,domain,0.03,0.03,b,radius)
+discont, domain,b,radius,sign = make_discont(5170,25,'positive')
+interp_mantle(discont,domain,0.03,0.03,b,radius,sign)
 
 

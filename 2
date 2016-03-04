@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+import numpy as np
+from matplotlib import pyplot as plt
+import plot
+import obspy
+
+def random_gen(i_resamp):
+    rand_list = []
+    for ii in range(i_resamp):
+        rand_list.append(np.random.randint(0,i_resamp))
+    return rand_list
+
+def resample_stream(st,rand_list):
+    st_resamp = obspy.core.Stream()
+    for ii in rand_list:
+        st_resamp.append(st[ii])
+    return st_resamp
+
+def make_parallel_list(st,num):
+    st_list = []
+    for ii in range(0,num):
+        rand_list = random_gen(len(st))
+        st_list.append(resample_stream(st,rand_list))
+    return st_list
+
+#parallel_list = make_parallel_list(st,10)
+print __name__
+
+#if __name__ == 'seispy':

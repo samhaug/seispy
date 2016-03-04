@@ -10,6 +10,10 @@ import os
 import myplot.basemap
 import h5py
 from obspy.imaging.beachball import Beachball
+from obspy.taup import TauPyModel
+model = TauPyModel(model="prem_50")
+from geopy.distance import VincentyDistance
+import geopy
 
 cmt = h5py.File('/home/samhaug/Utils/CMT_catalog/cmt.h5','r')
 
@@ -86,6 +90,7 @@ def add_station(coord_list, map, **kwargs):
    """
    From coordinate list, add stations to map
    """
+   model = TauPyModel(model="prem_50")
    mark = kwargs.get('marker','v')
    color = kwargs.get('color','yellow')
    size = kwargs.get('size',10)
@@ -127,6 +132,75 @@ def source_reciever_plot(st, **kwargs):
    if topo != False:
        myplot.basemap.drawtopography(m,alpha=0.5,cmap=matplotlib.cm.gray)
 
+   if save != False:
+       plt.savefig(save+'/map.pdf',format='pdf')
+   if save == False:
+       plt.show()
+
+def get_pierce_points(st,depth,h5_out):
+   model = TauPyModel(model="prem_50")
+   f = h5py.File(h5_out,'w')
+   evla = st[0].stats.sac['evla']
+   evlo = st[0].stats.sac['evlo']
+   evdp = st[0].stats.sac['evdp']
+   pierce_list = []
+   for idx,tr in enumerate(st):
+        print tr
+        a = model.get_pierce_points(evdp,tr.stats.sac['gcarc'],phase_list=['S1200P'])
+        b = a[0]
+        depth_index = np.argmin(np.abs(b.pierce['depth']-depth))
+        distance = b.pierce['dist'][depth_index]
+        pierce_list.append((distance,tr.stats.sac['az']))
+   pierce_array = np.array(pierce_list)
+   f.create_dataset('pierce',data=pierce_array)
+   f.close()
+   return pierce_array
+
+
+def pierce_point_plot(st, pierce_h5,**kwargs):
+   """
+   Plot source and reciever on map
+   """
+   save = kwargs.get('save',False)
+   f = h5py.File(pierce_h5,'r')
+   pierce_array = f['pierce'][...]
+
+   fig = plt.figure(figsize=(8,8))
+   ax = fig.add_axes([0.1,0.1,0.8,0.8])
+   lon_0 = st[0].stats.sac['evlo']
+   lat_0 = st[0].stats.sac['evla']
+   m = Basemap(projection='nsper',lon_0=lon_0,lat_0=lat_0,
+           satellite_height=500*1000.,resolution='l')
+   m.drawcoastlines()
+   m.drawcountries()
+   m.drawparallels(np.arange(-90.,120.,10.))
+   meridians = np.arange(180.,360.,10.)
+   m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10)
+   coord_list = stat_coord(st)
+   title = os.getcwd().split('/')
+   ax = plt.gca()
+
+   for ii in pierce_array:
+       bearing = ii[1]
+       origin = geopy.Point(lat_0,lon_0)
+       destination = VincentyDistance(kilometers=111*np.degrees(ii[0])).destination(origin,bearing)
+       lat = destination[0]
+       lon = destination[1]
+       x,y = m(lon,lat)
+       m.scatter(x,y,8,marker='o',color='yellow',lw=0)
+
+   try:
+       x,y = m(st[0].stats.sac['evlo'],st[0].stats.sac['evla'])
+       b = beachball(st[0],xy=(x,y),plot='map',width=0.1e6,alpha=0.5)
+       b.set_zorder(2)
+       ax.add_collection(b)
+   except KeyError:
+       print('No focal mechanism found')
+
+   ax.set_title('{} \n Depth (km): {} '.format(
+               title[5],round(st[0].stats.sac['evdp'],3)))
+
+   m.bluemarble()
    if save != False:
        plt.savefig(save+'/map.pdf',format='pdf')
    if save == False:
