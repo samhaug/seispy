@@ -87,7 +87,7 @@ def interp_mantle(discont,domain,v_discont,rho_discont,b,radius,sign):
     np.savetxt(full_txt,full,fmt='%1.3f')
     full_txt.close()
 
-discont, domain,b,radius,sign = make_discont(5170,25,'positive')
+discont, domain,b,radius,sign = make_discont(3681,25,'positive')
 interp_mantle(discont,domain,0.03,0.03,b,radius,sign)
 
 

@@ -106,6 +106,8 @@ def source_reciever_plot(st, **kwargs):
    """
    save = kwargs.get('save',False)
    topo = kwargs.get('topo',False)
+   mt = kwargs.get('moment_tensor',False)
+   w = kwargs.get('width',(900000,900000))
 
    m = mapplot()
    m.drawparallels(np.arange(-80.,81.,20.),labels=[True])
@@ -120,12 +122,18 @@ def source_reciever_plot(st, **kwargs):
    ax = plt.gca()
    x,y = m(st[0].stats.sac['evlo'],st[0].stats.sac['evla'])
 
-   try:
-       b = beachball(st[0],xy=(x,y),plot='map')
+   if mt == False:
+       try:
+           b = beachball(st[0],xy=(x,y),plot='map')
+           b.set_zorder(2)
+           ax.add_collection(b)
+       except KeyError:
+           print('No focal mechanism found')
+   else:
+       b = Beach(mt,width=w,xy=(x,y))
        b.set_zorder(2)
        ax.add_collection(b)
-   except KeyError:
-       print('No focal mechanism found')
+
 
    ax.set_title('{} \n Depth (km): {} '.format(
                title[5],round(st[0].stats.sac['evdp'],3)))

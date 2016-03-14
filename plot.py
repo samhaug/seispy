@@ -42,7 +42,7 @@ paper_font =  {'family' : 'serif',
              'weight' : 'medium',
              'size' : 'large'}
 
-def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
+def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False,plot=True):
     '''
     Produce colorbar of PKPdf scatterers from Mancinelli & Shearer 2011
     PARAMETERS
@@ -79,21 +79,31 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
 
     for tr in seis_stream:
         lat = receiver_latitude(tr)
-        if 120. <= lat <= 145.:
+        if lat in np.arange(123.,143.):
+        #if 120. <= lat <= 145.:
             tr.differentiate()
-            #tr.filter('bandpass',freqmin=0.3,freqmax=2.5)
+            tr.filter('bandpass',freqmin=1.5,freqmax=2.5)
             arrivals = model.get_travel_times(source_depth_in_km=event_depth,
                        distance_in_degree = lat, phase_list = ['PKiKP'])
             PKiKP = arrivals[0].time+time_offset
-            array = tr.slice(t+PKiKP-30,t+PKiKP+20)
-            array_norm = tr.slice(t+PKiKP-18,t+PKiKP-15).data.max()
-            data_envelope = obspy.signal.filter.envelope(array.data)
+            #array = tr.slice(t+PKiKP-20,t+PKiKP+10)
+            #array_norm = tr.slice(t+PKiKP-18,t+PKiKP-15).data.max()
+            array_norm = 1
+            #data_envelope = obspy.signal.filter.envelope(array.data)
+            #hil = scipy.fftpack.hilbert(array.data)
+            #data_envelope = pow((hil**2+array.data**2),0.5)
+            hil = scipy.fftpack.hilbert(tr.data)
+            data_envelope = pow((hil**2+tr.data**2),0.5)
+            tr.data = data_envelope
+            array = tr.slice(t+PKiKP-20,t+PKiKP+10)
+            data_envelope = array.data 
+            #data_envelope = obspy.signal.filter.envelope(array.data)
             data_waveform = (array.data/array_norm).clip(min=0)*2e-2
-            #data_waveform = (array.data/array_norm)*2e-1
+            data_waveform = (array.data/array_norm)*2e-1
             envelope_dict[lat] = data_envelope
             waveform_dict[lat] = data_waveform
 
-    rows = envelope_dict[120].shape[0]
+    rows = envelope_dict[130].shape[0]
     cols = len(envelope_dict.keys())
     waveform_array = np.zeros((rows,cols))
     envelope_array = np.zeros((rows,cols))
@@ -109,6 +119,9 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
     # Adjust precursor amplitude
     waveform_array[:,0:precursor_onset] *= 1
     time = np.linspace(-25,25,num=waveform_array.shape[1])
+
+    if plot == False:
+        return envelope_array
 
     fig, (ax,ax1) = plt.subplots(1,2,figsize=plt.figaspect(0.5))
 
@@ -153,7 +166,7 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False):
     cbar.solids.set_rasterized(True)
     cbar.set_label(r'$\log_{10}(Amplitude)$',fontsize=14)
 
-    return waveform_array
+    return np.flipud(envelope_array)
     #if name == False:
     #    plt.show()
     #else:
@@ -246,9 +259,10 @@ def vespagram(st_in,**kwargs):
         vesp_R= np.vstack((vesp_R,R))
     vesp_y = vesp_y[1::,:]
     vesp_R = vesp_R[1::,:]
-    vesp_y = vesp_y/ vesp_y.max()
     if plot == False:
-        return vesp_y
+        return vesp_R
+    vesp_y = vesp_y/ vesp_y.max()
+
 
     fig, ax = plt.subplots(2,sharex=True,figsize=(15,10))
 
@@ -308,14 +322,14 @@ def vespagram(st_in,**kwargs):
 
     figR, axR= plt.subplots(1,figsize=(14,7))
 
-    vesp_R *= 2
+    #vesp_R *= 2
     for idx, ii in enumerate(np.arange(window_slowness[1],window_slowness[0],
                              slowness_tick)):
         vesp_R[idx,:] += ii
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] >= ii,
-                         facecolor='purple',alpha=0.8,lw=0.5)
+                         facecolor='goldenrod',alpha=0.8,lw=0.5)
         axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] <= ii,
-                         facecolor='green',alpha=0.8,lw=0.5)
+                         facecolor='blue',alpha=0.8,lw=0.5)
         #axR.plot(time_vec,vesp_R[idx,:])
 
     axR.set_xlim(window_tuple)
@@ -509,6 +523,7 @@ def section(st,**kwargs):
     x_lim = kwargs.get('x_lim',(-50,1000))
     color = kwargs.get('color',False)
     picker = kwargs.get('picker',False)
+    align_phase = kwargs.get('align_phase',['P'])
 
     def main():
         p_list,name_list,dist_list = p_list_maker(st)
@@ -583,7 +598,7 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
                    phase_list = phases)
         P = model.get_travel_times(distance_in_degree=ref_degree,
                    source_depth_in_km=evdp,
-                   phase_list = ['P'])
+                   phase_list = align_phase+phase_list)
         P_slow = P[0].ray_param_sec_degree
         P_time = P[0].time
         ax.axvline(0,c='b',alpha=0.2,lw=2.0)
@@ -628,7 +643,7 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
             arrivals = model.get_travel_times(
                    distance_in_degree=tr.stats.sac['gcarc'],
                    source_depth_in_km=tr.stats.sac['evdp'],
-                   phase_list = ['P'])
+                   phase_list = align_phase)
             p_time = arrivals[0].time+o
             time = np.linspace(-1*p_time,end-start-p_time,num=tr.stats.npts)
             name = (str(tr.stats.network)+'.'+str(tr.stats.station))

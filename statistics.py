@@ -16,7 +16,7 @@ paper_font =  {'family' : 'serif',
              'weight' : 'medium',
              'size' : 'large'}
 
-def bootleg_compute(st,**kwargs):
+def bootstrap_compute(st,**kwargs):
     repeat = kwargs.get('repeat',100)
     i_resamp = kwargs.get('resamp',len(st))
 
@@ -36,7 +36,7 @@ def bootleg_compute(st,**kwargs):
     for ii in range(repeat):
         rand_list = random_gen(len(st))
         st_resamp = resample_stream(st,rand_list)
-        vesp = plot.vespagram(st,plot=False)
+        vesp = plot.vespagram(st_resamp,plot=False)
         vesp_list.append(vesp)
     vesp_array = np.zeros((len(vesp_list),vesp_list[0].shape[0],vesp_list[0].shape[1]))
     for ii in range(len(vesp_list)):
@@ -44,20 +44,20 @@ def bootleg_compute(st,**kwargs):
     std_array = np.std(vesp_array,axis=0)
     return std_array
 
-def bootleg_plot(std,**kwargs):
+def bootstrap_color(std_array,**kwargs):
     window_tuple = kwargs.get('window_tuple',(-10,230))
     window_slowness = kwargs.get('window_slowness',(-1.5,1.5))
     slowness_tick = kwargs.get('slowness_tick',-0.1)
     plot_line = kwargs.get('plot_line',False)
     save = kwargs.get('save',False)
-    clim = kwargs.get('clim',(-18,-14))
+    clim = kwargs.get('clim',(np.log10(std_array).min(),
+                              np.log10(std_array).max()))
     cmap = kwargs.get('cmap','gnuplot')
     font = kwargs.get('font',paper_font)
     plot = kwargs.get('plot',True)
 
-    std_array = std+1e-18
 
-    fig, ax = plt.subplots(figsize=(19,6))
+    fig, ax = plt.subplots(figsize=(15,5))
     image = ax.imshow(np.log10(std_array),aspect='auto',interpolation='lanczos',
                       extent=[window_tuple[0],window_tuple[1],
                       window_slowness[0],window_slowness[1]],cmap=cmap,
@@ -72,7 +72,51 @@ def bootleg_plot(std,**kwargs):
     ax.set_ylabel('Slowness (s/deg)',fontdict=font)
     plt.show()
 
+def bootstrap_wave(vesp,std_array,**kwargs):
+    window_tuple = kwargs.get('window_tuple',(-10,230))
+    window_slowness = kwargs.get('window_slowness',(-1.5,1.5))
+    slowness_tick = kwargs.get('slowness_tick',-0.1)
+    plot_line = kwargs.get('plot_line',False)
+    save = kwargs.get('save',False)
+    clim = kwargs.get('clim',(np.log10(std_array).min(),
+                              np.log10(std_array).max()))
+    cmap = kwargs.get('cmap','gnuplot')
+    font = kwargs.get('font',paper_font)
+    plot = kwargs.get('plot',True)
 
+    vesp_wave = vesp.copy()
+    fig, ax = plt.subplots(figsize=(15,5))
+    ax.set_xlim(window_tuple)
+    ax.set_ylim((window_slowness[0],window_slowness[1]+0.1))
+    ax.set_xlabel('Seconds after P',fontdict=font)
+    ax.set_ylabel('Slowness (s/deg)',fontdict=font)
+    ax.xaxis.set(ticks=range(window_tuple[0],window_tuple[1],10))
+
+    time_vec = np.linspace(window_tuple[0],window_tuple[1],
+                           num=vesp_wave.shape[1])
+    for idx, ii in enumerate(np.arange(window_slowness[1],window_slowness[0],
+                                      slowness_tick)):
+        vesp_wave[idx,:] +=ii
+        std_upper = vesp_wave[idx,:]+std_array[idx,:]
+        std_lower = vesp_wave[idx,:]-std_array[idx,:]
+        ax.plot(time_vec,vesp_wave[idx,:],color='k',lw=0.5)
+        ax.fill_between(time_vec,std_lower,std_upper,alpha=0.5,color='r')
+
+    fig2, ax2 = plt.subplots(figsize=(15,5))
+    ax2.set_xlim(window_tuple)
+    ax2.set_ylim((window_slowness[0],window_slowness[1]+0.1))
+    ax2.set_xlabel('Seconds after P',fontdict=font)
+    ax2.set_ylabel('Stacked Amplitude',fontdict=font)
+    ax2.xaxis.set(ticks=range(window_tuple[0],window_tuple[1],10))
+
+    vesp_single = vesp_wave[15,:]/np.abs(vesp_wave[15.:]).max()
+    std_upper = vesp_single+std_array[15,:]/np.abs(vesp_wave[15,:]).max()
+    std_lower = vesp_single-std_array[15,:]/np.abs(vesp_wave[15,:]).max()
+
+    ax2.plot(time_vec,vesp_single,color='k',lw=0.5)
+    ax2.fill_between(time_vec,std_lower,std_upper,alpha=0.5,color='r')
+
+    plt.show()
 
 
 
