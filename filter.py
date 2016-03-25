@@ -100,7 +100,7 @@ def gimp_filter(st):
     mx_len = max_len(st)
 
     for tr in st:
-        if tr.data.shape[0] < mx_len-10:
+        if tr.data.shape[0] < mx_len/3.:
             st.remove(tr)
         elif np.isnan(sum(tr.data)):
             st.remove(tr)

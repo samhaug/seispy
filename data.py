@@ -7,6 +7,7 @@ from obspy.taup import TauPyModel
 from matplotlib import pyplot as plt
 model = TauPyModel(model="prem_50")
 
+
 ###############################################################################
 def phase_window(tr,phases,window_tuple):
 ###############################################################################
@@ -32,7 +33,7 @@ def align_on_phase(st, **kwargs):
     '''
     phase = kwargs.get('phase',['P'])
     a_min = kwargs.get('min',True)
-    window_tuple = kwargs.get('window_tuple',(-10,10))
+    window_tuple = kwargs.get('window_tuple',(-5,5))
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)

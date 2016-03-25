@@ -42,6 +42,118 @@ paper_font =  {'family' : 'serif',
              'weight' : 'medium',
              'size' : 'large'}
 
+def new_precursor_PKIKP(st_in,**kwargs):
+
+
+    second = kwargs.get('second',True)
+    time_window = kwargs.get('time',(-35,20))
+    range_window = kwargs.get('range',(130,140))
+    band_filter = kwargs.get('filter',None)
+    plot = kwargs.get('plot',True)
+    differentiate = kwargs.get('diff',False)
+    align = kwargs.get('align',True)
+    shift = kwargs.get('shift',0)
+    interp = kwargs.get('interp','lanczos')
+
+    def main():
+
+        st = st_in.copy()
+        st = sort_stream(st)
+
+        if range_window != None:
+            for tr in st:
+                if tr.stats.gcarc < range_window[0] or \
+                tr.stats.gcarc > range_window[1]:
+                    st.remove(tr)
+
+        st.normalize()
+        if align == True:
+            st = data.align_on_phase(st,phase=['PKIKP'])
+
+        if second == True:
+            for tr in st:
+                if tr.stats.gcarc%0.5 != 0:
+                    st.remove(tr)
+
+        if band_filter != None:
+            st.filter('bandpass',freqmin=band_filter[0],freqmax=band_filter[1])
+
+
+        start = st[0].stats.starttime
+        end = st[0].stats.endtime
+        time = np.linspace(0,end-start,num=st[0].stats.npts)
+        event_depth = tr.stats.sac['evdp']
+        samp = tr.stats.sampling_rate
+
+        envelope_array = []
+        waveform_array = []
+
+        for tr in st:
+            print tr.stats.gcarc
+            hil = scipy.fftpack.hilbert(tr.data)
+            data_envelope = pow((hil**2+tr.data**2),0.5)
+            arrivals = model.get_travel_times(source_depth_in_km=event_depth,
+                       distance_in_degree=tr.stats.sac['gcarc'],phase_list=['PKIKP'])
+            PKIKP = arrivals[0].time+tr.stats.sac['o']+shift
+            closest_time = np.argmin(abs(PKIKP-time))
+            begin =  closest_time+(int(time_window[0]*samp))
+            stop = closest_time+(int(time_window[1]*samp))
+            envelope_array.append(data_envelope[begin:stop])
+            waveform_array.append(tr.data[begin:stop])
+
+        envelope = (np.array(envelope_array))
+        envelope = envelope/envelope.max()
+        waveform = ((np.array(waveform_array)))
+
+        if plot == False:
+            return envelope, waveform
+
+        plot_env(envelope,range_window,time_window)
+        plot_wave(waveform,range_window,time_window)
+        plt.show()
+        return envelope, waveform
+
+
+    def sort_stream(st):
+        for tr in st:
+            tr.stats.gcarc = round(tr.stats.sac['gcarc'],1)
+        st.sort(['gcarc'])
+        return st
+
+    def plot_env(envelope,rw,tw):
+        e = np.log10(envelope)
+        fig, ax = plt.subplots()
+        image = ax.imshow(np.log10(np.flipud(envelope)+1e-8),aspect='auto',
+            cmap='Spectral_r',extent=[(tw[0]),(tw[1]),rw[0],rw[1]],
+            interpolation=interp,vmin=-3.0,vmax=e.max())
+        ax.set_ylabel('Range (degrees)',fontsize=14)
+        ax.set_xlabel(r'Seconds before $PKPdf$',fontsize=14)
+        #ax.text(121,-19,'CMB',color='w',fontsize=14)
+        cbar = fig.colorbar(image,ax=ax)
+        cbar.solids.set_rasterized(True)
+        cbar.set_label(r'$\log_{10}(Amplitude)$',fontsize=14)
+        ax.grid(color='k')
+
+    def plot_wave(waveform,rw,tw):
+        w = waveform/waveform.max()+rw[0]
+        t = np.linspace(tw[0],tw[1],num=w.shape[1])
+        fig1,ax1 = plt.subplots()
+        for ii in range(0,w.shape[0]):
+            fill = (rw[0]+ii/2.0)*np.ones(w.shape[1])
+            ax1.fill_between(t,w[ii,:]+ii/2.0,fill,where=fill<=w[ii,:]+ii/2.0,
+                             facecolor='goldenrod',alpha=0.5)
+            ax1.fill_between(t,w[ii,:]+ii/2.0,fill,where=fill>=w[ii,:]+ii/2.0,
+                             facecolor='blue',alpha=0.5)
+            ax1.plot(t,w[ii,:]+ii/2.0,color='k',alpha=0.5)
+            #ax1.plot(t,fill,color='k')
+            #ax1.fill_between(t,w[ii,:],fill,where=w[ii,:] <=fill,
+            #                 facecolor='blue',alpha=0.5)
+        ax1.set_ylabel('Range (degrees)',fontsize=14)
+        ax1.set_xlabel(r'Seconds before $PKPdf$',fontsize=14)
+
+    return  main()
+
+
 def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False,plot=True):
     '''
     Produce colorbar of PKPdf scatterers from Mancinelli & Shearer 2011
@@ -59,14 +171,15 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False,plot=T
                  image to pdf in the
            directory work4/IMAGES
     '''
-    event_depth = seis_stream_in[0].stats.xh['source_depth_in_km']
+    event_depth = seis_stream_in[0].stats.sac['evdp']
 
     f = h5py.File(precursor_onset,'r')
 
     #Find reciever latitude and correct for coordinate system
     def receiver_latitude(tr):
         station = tr.stats.station.split('_')
-        lat = float(station[0]+'.'+station[1])
+    #   lat = float(station[0]+'.'+station[1])
+        lat = tr.stats.sac['gcarc']
         return lat
 
     seis_stream = seis_stream_in.copy()
@@ -103,6 +216,7 @@ def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False,plot=T
             envelope_dict[lat] = data_envelope
             waveform_dict[lat] = data_waveform
 
+    print envelope_dict.keys()
     rows = envelope_dict[130].shape[0]
     cols = len(envelope_dict.keys())
     waveform_array = np.zeros((rows,cols))
@@ -191,6 +305,7 @@ def vespagram(st_in,**kwargs):
     cmap = kwargs.get('cmap','gnuplot')
     font = kwargs.get('font',paper_font)
     plot = kwargs.get('plot',True)
+    title = kwargs.get('title',True)
 
     st = obspy.core.Stream()
     for idx, tr in enumerate(st_in):
@@ -302,7 +417,8 @@ def vespagram(st_in,**kwargs):
     ax[1].set_ylabel('Slowness (s/deg)',fontdict=font)
     ax[0].set_ylabel('Slowness (s/deg)',fontdict=font)
     ax[1].set_xlabel('Seconds after {}'.format(window_phase[0]),fontdict=font)
-    ax[0].set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {} \
+    if title == True:
+        ax[0].set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {} \
                      \n Bottom : N-root = {} Top: N-root = 1'
                   .format(st[0].stats.starttime,
                   round(st[0].stats.sac['evdp'],3),
@@ -336,7 +452,8 @@ def vespagram(st_in,**kwargs):
     axR.set_ylim([window_slowness[0],window_slowness[1]])
     axR.set_ylabel('Slowness (s/deg)')
     axR.set_xlabel('Seconds after P')
-    axR.set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {}'
+    if title == True:
+        axR.set_title('Start: {} \n Source Depth: {} km, Ref_dist: {} deg, {}'
                   .format(st[0].stats.starttime,
                    round(st[0].stats.sac['evdp'],3),round(mn_r,3),
                    os.getcwd().split('-')[3]))
@@ -524,6 +641,7 @@ def section(st,**kwargs):
     color = kwargs.get('color',False)
     picker = kwargs.get('picker',False)
     align_phase = kwargs.get('align_phase',['P'])
+    name = kwargs.get('name_plot',False)
 
     def main():
         p_list,name_list,dist_list = p_list_maker(st)
@@ -598,7 +716,7 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
                    phase_list = phases)
         P = model.get_travel_times(distance_in_degree=ref_degree,
                    source_depth_in_km=evdp,
-                   phase_list = align_phase+phase_list)
+                   phase_list = phases)
         P_slow = P[0].ray_param_sec_degree
         P_time = P[0].time
         ax.axvline(0,c='b',alpha=0.2,lw=2.0)
@@ -609,7 +727,7 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
                 time = ii.time-P_time
                 x = np.linspace(time-500,time+500)
                 y = (1/p)*(x-time)+ref_degree
-                ax.plot(x,y,alpha=0.2,label=ii.name,c=colors[idx],lw=2.0)
+                ax.plot(x,y,alpha=0.2,label=ii.purist_name,c=colors[idx],lw=2.0)
                 ax.legend()
 
     def add_to_axes(trace_tuple,ax):
@@ -640,11 +758,15 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
             data = tr.data
             start = tr.stats.starttime+o
             end = tr.stats.endtime+o
-            arrivals = model.get_travel_times(
+            if align_phase == None:
+                p_time = o
+            else:
+                arrivals = model.get_travel_times(
                    distance_in_degree=tr.stats.sac['gcarc'],
                    source_depth_in_km=tr.stats.sac['evdp'],
                    phase_list = align_phase)
-            p_time = arrivals[0].time+o
+                p = arrivals[0]
+                p_time = p.time+o
             time = np.linspace(-1*p_time,end-start-p_time,num=tr.stats.npts)
             name = (str(tr.stats.network)+'.'+str(tr.stats.station))
             name_list.append(name)

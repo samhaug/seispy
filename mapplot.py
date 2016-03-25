@@ -42,20 +42,23 @@ def beachball(tr, **kwargs):
    #else:
    #    Beachball(list(cmt[key][...]))
 
-def mapplot(**kwargs):
+def mapplot(proj,**kwargs):
    """
    produce map on which to draw objects
    """
-   proj = kwargs.get('projection','eck4')
+   #proj = kwargs.get('projection','eck4')
    lat = kwargs.get('lat_0',45)
    lon = kwargs.get('lon_0',-100)
    res = kwargs.get('resolution','l')
+   plt.figure(figsize=(20,20))
+   if proj == 'SA_to_NA':
+       map = Basemap(height=16700000,width=12000000,
+                resolution='l',area_thresh=1000.,projection='omerc',
+                lon_0=-100,lat_0=15,lon_2=-120,lat_2=65,lon_1=-50,lat_1=-55)
 
-   map = Basemap(height=16700000,width=12000000,
-            resolution='l',area_thresh=1000.,projection='omerc',
-            lon_0=-100,lat_0=15,lon_2=-120,lat_2=65,lon_1=-50,lat_1=-55)
+   if proj == 'eck4':
+       map = Basemap(projection=proj,lat_0=lat,lon_0=lon,resolution=res)
 
-   #map = Basemap(projection=proj,lat_0=lat,lon_0=lon,resolution=res)
    map.drawcoastlines(linewidth=0.25)
    map.drawcountries(linewidth=0.25)
    #map.fillcontinents(color='olive',lake_color='aqua')
@@ -108,8 +111,10 @@ def source_reciever_plot(st, **kwargs):
    topo = kwargs.get('topo',False)
    mt = kwargs.get('moment_tensor',False)
    w = kwargs.get('width',(900000,900000))
+   title = kwargs.get('title',True)
+   proj = kwargs.get('proj','eck4')
 
-   m = mapplot()
+   m = mapplot(proj)
    m.drawparallels(np.arange(-80.,81.,20.),labels=[True])
    m.drawmeridians(np.arange(-180.,181.,20.))
    source_coord = add_source(st,m)
@@ -135,7 +140,8 @@ def source_reciever_plot(st, **kwargs):
        ax.add_collection(b)
 
 
-   ax.set_title('{} \n Depth (km): {} '.format(
+   if title == True:
+       ax.set_title('{} \n Depth (km): {} '.format(
                title[5],round(st[0].stats.sac['evdp'],3)))
    if topo != False:
        myplot.basemap.drawtopography(m,alpha=0.5,cmap=matplotlib.cm.gray)

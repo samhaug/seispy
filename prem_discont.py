@@ -6,24 +6,34 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import interp1d
 
 
-def make_discont(radius,b,sign):
+def make_discont(discont_list):
 
-    domain = np.linspace(3480,5771,num=1500)
-    one = np.exp(-1*(radius-domain[domain<radius])/b)
-    two = np.exp(-1*(domain[domain>=radius]-radius)/b)
+    discont_rho = np.zeros(1500)
+    discont_v = np.zeros(1500)
+    for ii in discont_list:
+        domain = np.linspace(3480,5771,num=1500)
+        one = np.exp(-1*(ii[0]-domain[domain<ii[0]])/ii[1])
+        two = np.exp(-1*(domain[domain>=ii[0]]-ii[0])/ii[1])
 
-    if sign == 'positive':
-        one *= -1
-    if sign == 'negative':
-        two *= -1
-    discont = np.hstack((one,two))
-    discont = discont/discont.max()
-    return discont,domain,b,radius,sign
+        if ii[2] == 'positive':
+            one *= -1
+        if ii[2] == 'negative':
+            two *= -1
+
+        discont = np.hstack((one,two))
+        v_d = (discont/discont.max())*ii[3]
+        rho_d = (discont/discont.max())*ii[4]
+        discont_rho += rho_d
+        discont_v  += v_d
+    discont_rho += 1
+    discont_v += 1
+
+    return discont_v, discont_rho,domain
 
 
-def interp_mantle(discont,domain,v_discont,rho_discont,b,radius,sign):
-    name = '/home/samhaug/PREM_'+str(radius)+'_b_'+str(b)+'_v_'+str(v_discont)+'_rho_'+str(rho_discont)+'_'+str(sign)+'.bm'
-
+def interp_mantle(rho_discont,v_discont,domain):
+    #name = '/home/samhaug/PREM_'+str(radius)+'_b_'+str(b)+'_v_'+str(v_discont)+'_rho_'+str(rho_discont)+'_'+str(sign)+'.bm'
+    name = '/home/samhaug/PREM_discont.bm'
     prem_um = np.loadtxt('prem_um.dat')
     prem_core = np.loadtxt('prem_core.dat')
     prem = np.loadtxt('prem_lm.dat')
@@ -55,18 +65,18 @@ def interp_mantle(discont,domain,v_discont,rho_discont,b,radius,sign):
     qmu_interp = f_qmu(domain)
     eta_interp = f_eta(domain)
 
-    max_index = np.where(discont == discont.max())[0][0]
-    rho_d = discont*rho_interp[max_index]*rho_discont
-    vpv_d = discont*vpv_interp[max_index]*v_discont
-    vsv_d = discont*vsv_interp[max_index]*v_discont
-    vph_d = discont*vph_interp[max_index]*v_discont
-    vsh_d = discont*vsh_interp[max_index]*v_discont
+    #max_index = np.where(discont == discont.max())[0][0]
+    rho_d = rho_interp*rho_discont
+    vpv_d = vpv_interp*v_discont
+    vsv_d = vsv_interp*v_discont
+    vph_d = vph_interp*v_discont
+    vsh_d = vsh_interp*v_discont
 
-    new_rho = rho_interp + rho_d
-    new_vpv = vpv_interp + vpv_d
-    new_vsv = vsv_interp + vsv_d
-    new_vph = vph_interp + vph_d
-    new_vsh = vsh_interp + vsh_d
+    new_rho = rho_d
+    new_vpv = vpv_d
+    new_vsv = vsv_d
+    new_vph = vph_d
+    new_vsh = vsh_d
 
     out = np.vstack((np.round(domain*1000,3),
                      np.round(new_rho,3),
@@ -87,7 +97,11 @@ def interp_mantle(discont,domain,v_discont,rho_discont,b,radius,sign):
     np.savetxt(full_txt,full,fmt='%1.3f')
     full_txt.close()
 
-discont, domain,b,radius,sign = make_discont(3681,25,'positive')
-interp_mantle(discont,domain,0.03,0.03,b,radius,sign)
+discont_list = [[5521,25,'negative',0.03,0.03],
+                [4871,25,'negative',0.03,0.03],
+                [4571,25,'positive',0.03,0.03]]
+
+discont_v, discont_rho, domain = make_discont(discont_list)
+interp_mantle(discont_rho,discont_v,domain)
 
 

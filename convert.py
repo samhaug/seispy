@@ -3,7 +3,29 @@
 import numpy as np
 import obspy
 from geopy.distance import great_circle
+from obspy.taup import TauPyModel
+model = TauPyModel(model="prem_50")
 
+
+def set_origin_time(st):
+    '''
+    set sac['o'] time for events retrieved from SOD.
+    '''
+    event_depth = st[0].stats.sac['evdp']
+    for tr in st:
+        arrivals = model.get_travel_times(source_depth_in_km=event_depth,
+                  distance_in_degree=tr.stats.sac['gcarc'],phase_list=['PKIKP'])
+        time = arrivals[0].time
+        tr.stats.sac['o'] = -1*time
+    return st
+
+def SOD_evdp(st):
+    '''
+    divide all event depths by 1000
+    '''
+    for tr in st:
+        tr.stats.sac['evdp'] *= 0.001
+    return st
 
 def equalize_start_end(st):
     '''

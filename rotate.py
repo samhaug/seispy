@@ -59,6 +59,14 @@ def rotate_st(stn, ste, **kwargs):
         stt.append(trt)
     return str, stt
 
+def rotate_LQT(stn, ste, stz, **kwargs):
+    stn.sort(['station'])
+    ste.sort(['station'])
+    stz.sort(['station'])
+    str, stt = rotate_st(stn,ste)
+    stl, stq = rz_2_lq(str,stz)
+    return stl, stq, stt
+
 def express_zne():
     '''
     get z,n,e components
@@ -89,16 +97,32 @@ def express_all():
     ste_name_list = []
     stz_name_list = []
 
+    stn = filter.gimp_filter(stn)
+    ste = filter.gimp_filter(ste)
+    stz = filter.gimp_filter(stz)
     for tr in stn:
-        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station
-        stn_name_list.append(tr.stats.network+'.'+tr.stats.station)
+        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station+'.'
+                             #str(tr.stats.calib)
+        if tr.stats.full_name in stn_name_list:
+            stn.remove(tr)
+        stn_name_list.append(tr.stats.full_name)
     for tr in ste:
-        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station
-        ste_name_list.append(tr.stats.network+'.'+tr.stats.station)
+        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station+'.'
+                             #str(tr.stats.calib)
+        if tr.stats.full_name in ste_name_list:
+            ste.remove(tr)
+        ste_name_list.append(tr.stats.full_name)
     for tr in stz:
-        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station
-        stz_name_list.append(tr.stats.network+'.'+tr.stats.station)
+        tr.stats.full_name = tr.stats.network+'.'+tr.stats.station+'.'
+                             #str(tr.stats.calib)
+        if tr.stats.full_name in stz_name_list:
+            stz.remove(tr)
+        stz_name_list.append(tr.stats.full_name)
 
+    #common_name = set(stn_name_list)|set(ste_name_list)|set(stz_name_list)
+    #full_name = set(stz_name_list+ste_name_list+stn_name_list)
+    #common_list = min(len(set(stn_name_list)),len(set(stz_name_list)),len(set(ste_name_list)))
+    #return common_name,full_name
     common_name = set(stn_name_list) & set(ste_name_list) & set(stz_name_list)
 
     for tr in stn:
@@ -115,9 +139,6 @@ def express_all():
     ste.sort(['full_name'])
     stn.sort(['full_name'])
 
-    stn = filter.gimp_filter(stn)
-    ste = filter.gimp_filter(ste)
-    stz = filter.gimp_filter(stz)
 
     print len(stn),len(ste),len(stz)
     if (len(stn[0].data) == len(ste[0].data) == len(stz[0].data)) == False:
@@ -127,10 +148,10 @@ def express_all():
             ste[idx].data = ste[idx].data[0:new_len-1]
             stz[idx].data = stz[idx].data[0:new_len-1]
 
-    str, stt = rotate_st(stn,ste)
+    strad, stt = rotate_st(stn,ste)
 
     #return common_name
-    return  str, stt, stz, ste, stn
+    return  strad, stt, stz, ste, stn
 
 def rz_2_lq(str,stz):
     '''
