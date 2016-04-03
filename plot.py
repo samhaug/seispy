@@ -42,6 +42,54 @@ paper_font =  {'family' : 'serif',
              'weight' : 'medium',
              'size' : 'large'}
 
+def compare_precursor_PKIKP(**kwargs):
+
+    time_window = kwargs.get('time',(-35,3))
+    arrangement = kwargs.get('arrangement','homogeneity')
+    env_list = kwargs.get('env_list',False)
+    st_list = kwargs.get('st_list',False)
+    scale = kwargs.get('scale',1)
+
+    if st_list != False:
+        shift_list = kwargs.get('shift',[0]*len(st_list))
+        env_list = []
+
+        for idx,ii in enumerate(st_list):
+            print ii
+            print shift_list[idx]
+            env,wave = new_precursor_PKIKP(ii,shift=shift_list[idx],plot=False,
+                       align=False,time=time_window)
+            env_list.append(env)
+
+    if env_list != False:
+        env_list = env_list
+
+    if arrangement == 'homogeneity':
+        tw = time_window
+        fig, ax = plt.subplots(2,3,figsize=(15,10))
+        im0 = ax[0,0].imshow(np.log10(np.flipud(env_list[0])+1e-8),aspect='auto',
+            cmap='Spectral_r',extent=[(tw[0]),(tw[1]),130,140],
+            interpolation='lanczos',vmin=-2.0,vmax=env_list[0].max()*0)
+
+        im1 = ax[0,1].imshow(np.log10(np.flipud(env_list[1])+1e-8),aspect='auto',
+            cmap='Spectral_r',extent=[(tw[0]),(tw[1]),130,140],
+            interpolation='lanczos',vmin=-2.0,vmax=env_list[1].max()*0)
+
+        im2 = ax[0,2].imshow(np.log10(np.flipud(env_list[2])+1e-8),aspect='auto',
+            cmap='Spectral_r',extent=[(tw[0]),(tw[1]),130,140],
+            interpolation='lanczos',vmin=-2.0,vmax=env_list[2].max()*0)
+
+        im3 = ax[1,0].imshow(np.log10(np.flipud(env_list[0]*10*scale)+1e-8),aspect='auto',
+            cmap='Spectral_r',extent=[(tw[0]),(tw[1]),130,140],
+            interpolation='lanczos',vmin=-2.0,vmax=env_list[2].max()*0)
+
+        im4 = ax[1,1].imshow(np.log10(np.flipud(env_list[1]*2*scale)+1e-8),aspect='auto',
+            cmap='Spectral_r',extent=[(tw[0]),(tw[1]),130,140],
+            interpolation='lanczos',vmin=-2.0,vmax=env_list[2].max()*0)
+        plt.show()
+
+    return env_list
+
 def new_precursor_PKIKP(st_in,**kwargs):
 
 
@@ -373,7 +421,7 @@ def vespagram(st_in,**kwargs):
         vesp_y= np.vstack((vesp_y,yi))
         vesp_R= np.vstack((vesp_R,R))
     vesp_y = vesp_y[1::,:]
-    vesp_R = vesp_R[1::,:]
+    vesp_R1 = vesp_R[1::,:]*2
     if plot == False:
         return vesp_R
     vesp_y = vesp_y/ vesp_y.max()
@@ -441,10 +489,10 @@ def vespagram(st_in,**kwargs):
     #vesp_R *= 2
     for idx, ii in enumerate(np.arange(window_slowness[1],window_slowness[0],
                              slowness_tick)):
-        vesp_R[idx,:] += ii
-        axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] >= ii,
+        vesp_R1[idx,:] += ii
+        axR.fill_between(time_vec,ii,vesp_R1[idx,:],where=vesp_R1[idx,:] >= ii,
                          facecolor='goldenrod',alpha=0.8,lw=0.5)
-        axR.fill_between(time_vec,ii,vesp_R[idx,:],where=vesp_R[idx,:] <= ii,
+        axR.fill_between(time_vec,ii,vesp_R1[idx,:],where=vesp_R1[idx,:] <= ii,
                          facecolor='blue',alpha=0.8,lw=0.5)
         #axR.plot(time_vec,vesp_R[idx,:])
 
@@ -467,6 +515,8 @@ def vespagram(st_in,**kwargs):
         plt.show()
 
     return vesp_R
+
+
 def plot(tr,**kwargs):
     '''
     plot trace object

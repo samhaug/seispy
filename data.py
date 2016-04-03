@@ -9,6 +9,17 @@ model = TauPyModel(model="prem_50")
 
 
 ###############################################################################
+def roll(st,seconds):
+###############################################################################
+    '''
+    Shift all traces in stream by seconds
+    '''
+    for tr in st:
+        shift = int(tr.stats.sampling_rate*seconds)
+        tr.data = np.roll(tr.data,shift)
+    return st
+
+###############################################################################
 def phase_window(tr,phases,window_tuple):
 ###############################################################################
     '''

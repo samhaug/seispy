@@ -151,16 +151,22 @@ def source_reciever_plot(st, **kwargs):
    if save == False:
        plt.show()
 
-def get_pierce_points(st,depth,h5_out):
+def get_pierce_points(st,phase,depth,h5_out):
    model = TauPyModel(model="prem_50")
-   f = h5py.File(h5_out,'w')
+   try:
+       f = h5py.File('/home/samhaug/anaconda2/lib/python2.7/site-packages/seispy'+
+                h5_out,'w')
+   except IOError:
+       os.rmdir('/home/samhaug/anaconda2/lib/python2.7/site-packages/seispy'+
+                h5_out)
+       print "Had to remove existing file. Try again"
    evla = st[0].stats.sac['evla']
    evlo = st[0].stats.sac['evlo']
    evdp = st[0].stats.sac['evdp']
    pierce_list = []
    for idx,tr in enumerate(st):
         print tr
-        a = model.get_pierce_points(evdp,tr.stats.sac['gcarc'],phase_list=['S1200P'])
+        a = model.get_pierce_points(evdp,tr.stats.sac['gcarc'],phase_list=[phase])
         b = a[0]
         depth_index = np.argmin(np.abs(b.pierce['depth']-depth))
         distance = b.pierce['dist'][depth_index]
@@ -176,20 +182,24 @@ def pierce_point_plot(st, pierce_h5,**kwargs):
    Plot source and reciever on map
    """
    save = kwargs.get('save',False)
-   f = h5py.File(pierce_h5,'r')
+   f = h5py.File('/home/samhaug/anaconda2/lib/python2.7/site-packages/seispy'+
+                 pierce_h5,'r')
    pierce_array = f['pierce'][...]
 
    fig = plt.figure(figsize=(8,8))
    ax = fig.add_axes([0.1,0.1,0.8,0.8])
    lon_0 = st[0].stats.sac['evlo']
    lat_0 = st[0].stats.sac['evla']
-   m = Basemap(projection='nsper',lon_0=lon_0,lat_0=lat_0,
-           satellite_height=500*1000.,resolution='l')
+   m = Basemap(llcrnrlon=-90.,llcrnrlat=-20,urcrnrlon=-50.,urcrnrlat=10.,\
+              resolution='l',area_thresh=1000.,projection='poly',\
+                          lat_0=-0.,lon_0=-70.)
+   #m = Basemap(projection='nsper',lon_0=lon_0,lat_0=lat_0,
+   #        satellite_height=800*1000.,resolution='l')
    m.drawcoastlines()
    m.drawcountries()
    m.drawparallels(np.arange(-90.,120.,10.))
    meridians = np.arange(180.,360.,10.)
-   m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=10)
+   m.drawmeridians(meridians)
    coord_list = stat_coord(st)
    title = os.getcwd().split('/')
    ax = plt.gca()
@@ -205,7 +215,7 @@ def pierce_point_plot(st, pierce_h5,**kwargs):
 
    try:
        x,y = m(st[0].stats.sac['evlo'],st[0].stats.sac['evla'])
-       b = beachball(st[0],xy=(x,y),plot='map',width=0.1e6,alpha=0.5)
+       b = beachball(st[0],xy=(x,y),plot='map',width=0.3e6,alpha=0.5)
        b.set_zorder(2)
        ax.add_collection(b)
    except KeyError:

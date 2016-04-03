@@ -7,6 +7,48 @@ from geopy.distance import great_circle
 from obspy.taup import TauPyModel
 model = TauPyModel(model="prem_50")
 from matplotlib import pyplot as plt
+import glob
+
+def read_ed_list():
+    dir_list = glob.glob('*PKIKP')
+    ed_list = []
+    for ii in dir_list:
+        f = h5py.File(ii+'/Processed/env.h5','r')
+        env = f['env'][...]
+        num = f['num'][...]
+        ed_list.append([env,num])
+        f.close()
+    return ed_list
+
+def sum_env(ed_list):
+
+    def matrix_sum(ed_list):
+        norm = np.zeros(ed_list[0][0].shape)
+        for ii in ed_list:
+            num = np.flipud(ii[1][:,1])
+            env = ii[0].copy()
+            for jj in range(0,env.shape[0]):
+                env[jj,:]*=num[jj]
+            norm += env
+        return norm
+
+    def normalize(ed_list):
+        num = np.zeros(ed_list[0][1].shape[0])
+        for ii in ed_list:
+            num += np.flipud(ii[1][:,1])
+        return num
+
+    def return_sum(norm,num):
+        for ii in range(0,norm.shape[0]):
+            norm[ii,:] = norm[ii,:]/float(num[ii])
+            norm[ii,:] = norm[ii,:]/norm[ii,:].max()
+        return norm
+
+    norm = matrix_sum(ed_list)
+    num = normalize(ed_list)
+    norm_mat = return_sum(norm,num)
+    return norm_mat,num
+
 
 def read_norm():
 
