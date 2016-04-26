@@ -9,12 +9,13 @@ import scipy
 import obspy
 import h5py
 import numpy as np
+import copy
 
 from seispy.data import phase_window
 from matplotlib import pyplot as plt
-from obspy.taup import TauPyModel
 import obspy.signal.filter
 import obspy.signal
+from obspy.taup import TauPyModel
 model = TauPyModel(model="prem_50")
 from matplotlib import colors, ticker, cm
 from matplotlib.patches import Polygon
@@ -102,6 +103,7 @@ def new_precursor_PKIKP(st_in,**kwargs):
     align = kwargs.get('align',True)
     shift = kwargs.get('shift',0)
     interp = kwargs.get('interp','lanczos')
+    ax_grab = kwargs.get('ax_grab',False)
 
     def main():
 
@@ -170,14 +172,17 @@ def new_precursor_PKIKP(st_in,**kwargs):
 
     def plot_env(envelope,rw,tw):
         e = np.log10(envelope)
-        fig, ax = plt.subplots()
+        if ax_grab != False:
+            ax = ax_grab
+        else:
+            fig, ax = plt.subplots()
         image = ax.imshow(np.log10(np.flipud(envelope)+1e-8),aspect='auto',
             cmap='Spectral_r',extent=[(tw[0]),(tw[1]),rw[0],rw[1]],
             interpolation=interp,vmin=-3.0,vmax=e.max())
         ax.set_ylabel('Range (degrees)',fontsize=14)
         ax.set_xlabel(r'Seconds before $PKPdf$',fontsize=14)
         #ax.text(121,-19,'CMB',color='w',fontsize=14)
-        cbar = fig.colorbar(image,ax=ax)
+        cbar = plt.colorbar(image,ax=ax)
         cbar.solids.set_rasterized(True)
         cbar.set_label(r'$\log_{10}(Amplitude)$',fontsize=14)
         ax.grid(color='k')
@@ -341,7 +346,7 @@ def vespagram(st_in,**kwargs):
     through remove_dirty
     '''
 
-    window_tuple = kwargs.get('window_tuple',(-10,230))
+    window_tuple = kwargs.get('x_lim',(-10,230))
     window_phase = kwargs.get('window_phase',['P'])
     window_slowness = kwargs.get('window_slowness',(-1.5,1.5))
     slowness_tick = kwargs.get('slowness_tick',-0.1)
@@ -354,6 +359,7 @@ def vespagram(st_in,**kwargs):
     font = kwargs.get('font',paper_font)
     plot = kwargs.get('plot',True)
     title = kwargs.get('title',True)
+    ax_grab = kwargs.get('ax_grab',False)
 
     st = obspy.core.Stream()
     for idx, tr in enumerate(st_in):
@@ -403,10 +409,16 @@ def vespagram(st_in,**kwargs):
         phase_list = phases)
         if len(arrivals) != 0:
             colors = ['b','g','r','c','m','y','k']
+            name = []
             for idx, ii in enumerate(arrivals):
-                p = ii.ray_param_sec_degree-P_slowness
-                time = ii.time-P_time
-                ax.scatter(time,p,s=22,marker='D',c='w',zorder=20)
+                if ii.name in name:
+                    continue
+                else:
+                    name.append(ii.name)
+                    p = ii.ray_param_sec_degree-P_slowness
+                    time = ii.time-P_time
+                    ax.scatter(time,p,s=300,marker='D',zorder=20,
+                           facecolors='None',lw=1,edgecolor=text_color)
                 #ax.text(time,p,ii.name,fontsize=16,color=text_color)
 
     mn_r = mean_range(st)
@@ -416,7 +428,7 @@ def vespagram(st_in,**kwargs):
 
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
-    for ii in np.arange(window_slowness[0],window_slowness[1],0.1):
+    for ii in np.arange(window_slowness[0],window_slowness[1],-1*slowness_tick):
         yi,R = slant_stack(st,mn_r,ii,1.0)
         vesp_y= np.vstack((vesp_y,yi))
         vesp_R= np.vstack((vesp_R,R))
@@ -426,6 +438,12 @@ def vespagram(st_in,**kwargs):
         return vesp_R
     vesp_y = vesp_y/ vesp_y.max()
 
+    if ax_grab != False:
+        ax = ax_grab
+        image_0 = ax.imshow(np.log10(vesp_y),aspect='auto',interpolation='lanczos',
+           extent=[window_tuple[0],window_tuple[1],window_slowness[0],window_slowness[1]],
+           cmap=cmap,vmin=clim[0],vmax=clim[1])
+        return image_0
 
     fig, ax = plt.subplots(2,sharex=True,figsize=(15,10))
 
@@ -436,7 +454,7 @@ def vespagram(st_in,**kwargs):
 
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
-    for ii in np.arange(window_slowness[0],window_slowness[1],0.1):
+    for ii in np.arange(window_slowness[0],window_slowness[1],-1*slowness_tick):
         yi,R = slant_stack(st,mn_r,ii,n_root)
         vesp_y= np.vstack((vesp_y,yi))
         vesp_R= np.vstack((vesp_R,R))
@@ -474,9 +492,8 @@ def vespagram(st_in,**kwargs):
                   str(n_root)))
 
     if phase_list:
-        phase_plot(ax[0],evdp,mn_r,phase_list,text_color='green')
-        phase_plot(ax[1],evdp,mn_r,phase_list,text_color='green')
-        #phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
+        phase_plot(ax[0],evdp,mn_r,phase_list,text_color='white')
+        phase_plot(ax[1],evdp,mn_r,phase_list,text_color='white')
 
     if save != False:
         plt.savefig(save+'/vespagram.pdf',format='pdf')
@@ -495,6 +512,8 @@ def vespagram(st_in,**kwargs):
         axR.fill_between(time_vec,ii,vesp_R1[idx,:],where=vesp_R1[idx,:] <= ii,
                          facecolor='blue',alpha=0.8,lw=0.5)
         #axR.plot(time_vec,vesp_R[idx,:])
+        if phase_list:
+            phase_plot(axR,evdp,mn_r,phase_list,text_color='black')
 
     axR.set_xlim(window_tuple)
     axR.set_ylim([window_slowness[0],window_slowness[1]])
@@ -514,7 +533,7 @@ def vespagram(st_in,**kwargs):
     else:
         plt.show()
 
-    return vesp_R
+    return vesp_R1
 
 
 def plot(tr,**kwargs):
@@ -647,7 +666,7 @@ def component_plot(tr_list,**kwargs):
             ax.set_xlim((start+arrivals[0].time+window_tuple[0],
                         start+arrivals[0].time+window_tuple[1]))
         ax.grid()
-        ax.set_xlabel('Seconds after event')
+        ax.set_xlabel('Seconds after P')
         ax.set_xticks(np.arange(start-50,end,25))
         ax.set_title('{} \n Depth (km): {} Dist (deg): {}, Az (deg): {}, {}'.format(
             tr_list[0].stats.starttime,
@@ -688,17 +707,25 @@ def section(st,**kwargs):
     save = kwargs.get('save',False)
     title = kwargs.get('title',True)
     x_lim = kwargs.get('x_lim',(-50,1000))
+    y_lim = kwargs.get('y_lim',False)
     color = kwargs.get('color',False)
     picker = kwargs.get('picker',False)
     align_phase = kwargs.get('align_phase',['P'])
     name = kwargs.get('name_plot',False)
+    az_color = kwargs.get('az_color',False)
+    ax_grab = kwargs.get('ax_grab',False)
 
     def main():
         p_list,name_list,dist_list = p_list_maker(st)
         lim_tuple = ax_limits(p_list)
 
-        fig, ax = plt.subplots(figsize =(10,15))
+        if ax_grab != False:
+            ax = ax_grab
+        else:
+            fig, ax = plt.subplots(figsize =(10,15))
         ax.set_xlim((x_lim[0],x_lim[1]))
+        if y_lim != False:
+            ax.set_ylim((y_lim[0],y_lim[1]))
         for idx,ii in enumerate(p_list):
             add_to_axes(ii,ax)
 
@@ -715,7 +742,7 @@ def section(st,**kwargs):
             ax.set_ylim((ymin-2,ymax+2))
 
         ax.set_ylabel('Distance (deg)')
-        ax.set_xlabel('Seconds After Event')
+        ax.set_xlabel('Seconds After P')
 
         if shift:
             ax.set_xlabel('Seconds')
@@ -755,9 +782,11 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
                 rmfile.write("%s\n" % item)
             rmfile.close()
 
+        if save == False and ax_grab == True:
+            print "added_axis"
         if save != False:
             plt.savefig(save+'/section.pdf',format='pdf')
-        if save == False:
+        if save == False and ax_grab == False:
             plt.show()
 
     def phase_plot(lim_tuple,ref_degree,evdp,phases,ax,o):
@@ -769,22 +798,28 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
                    phase_list = phases)
         P_slow = P[0].ray_param_sec_degree
         P_time = P[0].time
-        ax.axvline(0,c='b',alpha=0.2,lw=2.0)
+        ax.axvline(0,c='b',alpha=0.2,lw=9.0)
         if len(arrivals) != 0:
-            colors = ['b','g','r','c','m','y','b','g','r','c']
+            colors = ['b','r','g','b','r','g','b','r','g','b']
+            name_list = []
             for idx, ii in enumerate(arrivals):
-                p =  ii.ray_param_sec_degree - P_slow
-                time = ii.time-P_time
-                x = np.linspace(time-500,time+500)
-                y = (1/p)*(x-time)+ref_degree
-                ax.plot(x,y,alpha=0.2,label=ii.purist_name,c=colors[idx],lw=2.0)
-                ax.legend()
+                if ii.purist_name in name_list:
+                    continue
+                else:
+                    name_list.append(ii.purist_name)
+                    p =  ii.ray_param_sec_degree - P_slow
+                    time = ii.time-P_time
+                    x = np.linspace(time-500,time+500)
+                    y = (1/p)*(x-time)+ref_degree
+                    ax.plot(x,y,alpha=0.2,label=ii.purist_name,lw=9.0)
+            ax.legend()
 
     def add_to_axes(trace_tuple,ax):
         data = trace_tuple[0]
         time = trace_tuple[1]
         dist = trace_tuple[2]
         name = trace_tuple[3]
+        az = trace_tuple[4]
         if color == True and picker == True:
             ax.plot(time,data+dist,alpha=0.5,lw=1,picker=5,label=name)
         if color == True and picker != True:
@@ -792,7 +827,13 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
         if color != True and picker == True:
             ax.plot(time,data+dist,alpha=0.5,lw=1,picker=5,label=name)
         if color != True and picker != True:
-            ax.plot(time,data+dist,alpha=0.5,lw=1,c='k')
+            if az_color != False:
+                if az_color > az:
+                    ax.plot(time,data+dist,alpha=0.5,lw=1,c='k')
+                if az_color < az:
+                    ax.plot(time,data+dist,alpha=0.5,lw=1,c='darkgreen')
+            else:
+                ax.plot(time,data+dist,alpha=0.5,lw=1,c='k')
         if fill:
             ax.fill_between(time, dist, data+dist, where=data+dist <= dist,
                             facecolor='r', alpha=0.5, interpolate=True)
@@ -821,7 +862,8 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
             name = (str(tr.stats.network)+'.'+str(tr.stats.station))
             name_list.append(name)
             dist_list.append(tr.stats.sac['gcarc']+tr.data[0])
-            p_list.append((data,time,tr.stats.sac['gcarc'],name))
+            p_list.append((data,time,tr.stats.sac['gcarc'],name,
+                           tr.stats.sac['az']))
         return p_list,name_list,dist_list
 
     def ax_limits(p_list):
@@ -914,6 +956,67 @@ def express_plot(st, **kwargs):
     section(st,shift=True,save=fig_dir+name)
     mapplot.source_reciever_plot(st,save=fig_dir+name)
     st.write(fig_dir+name+'/'+name+'.SAC',format='SAC')
+
+
+def stack_amp(st,**kwargs):
+    '''
+    stack amplitude of vespagram along slope
+    '''
+
+    slope = kwargs.get('slope',197)
+    y_int = kwargs.get('y_int',73)
+    ax_grab = kwargs.get('ax_grab',False)
+    x_lim = kwargs.get('x_lim',(-10,120))
+    return_tr = kwargs.get('return_tr',False)
+
+    vesp = vespagram(st,title=False,slowness_tick=-0.02,
+                                 plot=False,x_lim=x_lim)
+
+    section_list = []
+    x_list = np.arange(0,vesp.shape[1],slope)
+    for idx, ii in enumerate(x_list):
+        try:
+            section_list.append(vesp[y_int+idx,x_list[idx]:x_list[idx+1]])
+        except IndexError:
+            section_list.append(vesp[y_int+idx,x_list[idx]::])
+            section_list[-1] = np.hstack((section_list[-1],
+                       np.zeros(section_list[-2].size-section_list[-1].size)))
+    section = np.array(section_list)
+    section = np.reshape(section,section.size,order='C')
+
+    try:
+        section = section/np.abs(section).max()
+    except ValueError:
+        print('Problem with normalization')
+        return section
+
+    if ax_grab == False:
+        fig, ax = plt.subplots(figsize=(10,5))
+    else:
+        ax = ax_grab
+
+    time = np.linspace(-10,120,num=section.shape[0])
+    ax.plot(time,section,color='k')
+    ax.grid()
+    ax.set_xlabel('Seconds after P')
+    ax.set_xlim(x_lim)
+
+    if ax_grab == False:
+        plt.show()
+
+    if return_tr:
+        tr = obspy.core.trace.Trace()
+        tr.data = section
+        tr.stats.sampling_rate = len(section)/(np.abs(x_lim[0])+x_lim[1])
+        tr.stats.starttime = 0
+        tr.stats.sac = {}
+        tr.stats.sac['o'] = 0
+        tr.stats.sac['gcarc'] = 0
+        tr.stats.sac['evdp'] = 0
+
+
+        return tr
+
 
 
 

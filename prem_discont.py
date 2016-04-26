@@ -107,9 +107,7 @@ def interp_mantle(rho_discont,vs_discont,vp_discont,domain):
     np.savetxt(full_txt,full,fmt='%1.3f')
     full_txt.close()
 
-discont_list = [{'h':5221,'b':25,'sign':'positive','thick':10,'vs':0.03,'vp':0.03,'rho':0.03},
-#                {'h':4871,'b':25,'sign':'negative','thick':10,'vs':0.03,'vp':0.03,'rho':0.03},
-                {'h':4571,'b':25,'sign':'positive','thick':50,'vs':0.03,'vp':0.03,'rho':0.03}]
+discont_list = [{'h':4571,'b':25,'sign':'negative','thick':10,'vs':0.015,'vp':0.015,'rho':0.015}]
 
 discont_vp, discont_vs, discont_rho, domain = make_discont(discont_list)
 interp_mantle(discont_rho,discont_vs,discont_vp,domain)

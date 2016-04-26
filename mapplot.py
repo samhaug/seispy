@@ -222,7 +222,7 @@ def pierce_point_plot(st, pierce_h5,**kwargs):
        print('No focal mechanism found')
 
    ax.set_title('{} \n Depth (km): {} '.format(
-               title[5],round(st[0].stats.sac['evdp'],3)))
+               title[5],pierce_h5.split('_')[0]))
 
    m.bluemarble()
    if save != False:
