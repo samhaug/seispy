@@ -91,8 +91,8 @@ def make_discont(val_list,thick,amp):
     right_r = np.linspace(right_rad_beg,right_rad[-1])
 
     p_amp_0 =     val_list[0][1][0]
-    p_new_amp_1 = val_list[0][1][-1]*(1+amp)
-    p_new_amp_2 = val_list[2][1][0]*(1-amp)
+    p_new_amp_1 = val_list[0][1][-1]*(1+amp*0.5)
+    p_new_amp_2 = val_list[2][1][0]*(1-amp*0.5)
     p_amp_2_end = val_list[2][1][-1]
 
     s_amp_0 =     val_list[0][2][0]
@@ -101,8 +101,8 @@ def make_discont(val_list,thick,amp):
     s_amp_2_end = val_list[2][2][-1]
 
     rho_amp_0 =     val_list[0][3][0]
-    rho_new_amp_1 = val_list[0][3][-1]*(1+amp)
-    rho_new_amp_2 = val_list[2][3][0]*(1-amp)
+    rho_new_amp_1 = val_list[0][3][-1]*(1+amp*0.3)
+    rho_new_amp_2 = val_list[2][3][0]*(1-amp*0.3)
     rho_amp_2_end = val_list[2][3][-1]
 
     p_left_amp = np.linspace(p_amp_0,p_new_amp_1)
@@ -191,7 +191,7 @@ def write_output(thick,amplitude):
     inc = read_file('input.prem.psv')
     #select list increment to vary depth of discontinuity
     val_list = make_layer(inc[18:21])
-    r,p,s,rho = make_discont(val_list,thick,amplitude)
+    r,p,s,rho = make_discont(val_list,thick,amplitude/2.)
     f = open('test','w+')
     for ii in range(0,len(r)):
         write_list_inc(r[ii],p[ii],s[ii],rho[ii],f)

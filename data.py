@@ -5,6 +5,7 @@ import obspy
 import numpy as np
 from obspy.taup import TauPyModel
 from matplotlib import pyplot as plt
+from scipy.signal import argrelextrema
 model = TauPyModel(model="prem_50")
 
 
@@ -75,6 +76,61 @@ def align_on_phase(st, **kwargs):
             tr.data = np.roll(tr.data,(1*shift))
 
     return st
+
+###############################################################################
+def align_on_correlation(st, **kwargs):
+###############################################################################
+    '''
+    Use to precisely align seismogram on phase
+    '''
+
+    phase = kwargs.get('phase',['P'])
+    a_min = kwargs.get('min',True)
+    window_tuple = kwargs.get('window_tuple',(-5,5))
+    ref_tuple = kwargs.get('ref_window',(-50,50))
+
+    tr = st[0]
+    arrivals = model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
+                     source_depth_in_km=tr.stats.sac['evdp'],
+                     phase_list = phase)
+    P = arrivals[0]
+    t = tr.stats.starttime
+    o = tr.stats.sac['o']
+
+    ref_data = (tr.slice(t+P.time+ref_tuple[0]+o,
+                    t+P.time+ref_tuple[1]+o).data)
+
+
+    for tr in st[1::]:
+        arrivals = model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
+                     source_depth_in_km=tr.stats.sac['evdp'],
+                     phase_list = phase)
+        P = arrivals[0]
+        t = tr.stats.starttime
+        o = tr.stats.sac['o']
+        tr_data = (tr.slice(t+P.time+ref_tuple[0]+o,
+                    t+P.time+ref_tuple[1]+o).data)
+        cor = scipy.signal.fftconvolve(ref_data,tr_data[::-1])
+        midpoint = cor.shape[0]/2
+        imax = np.where(cor == cor.max())[0][0]
+        roll = -1*(midpoint-imax)
+        tr.data = np.roll(tr.data,roll)
+    return st
+
+
+    #    if polarization == min:
+    #        imin = argrelextrema(window_data,np.less)[0][0]
+    #        shift = int(len(window_data)/2.)-imin
+    #        tr.data = np.roll(tr.data,(1*shift))
+    #    elif polarization == max:
+    #        imax = argrelextrema(window_data,np.greater)[0][0]
+    #        shift = int(len(window_data)/2.)-imax
+    #        tr.data = np.roll(tr.data,(1*shift))
+    #    else:
+    #        print('polarization must be min or max')
+    #        break
+#
+#    return st
 
 ###############################################################################
 def normalize_on_phase(st,**kwargs):

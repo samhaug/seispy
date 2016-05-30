@@ -7,14 +7,15 @@ from obspy.taup import TauPyModel
 model = TauPyModel(model="prem_50")
 
 
-def set_origin_time(st):
+def set_origin_time(st,**kwargs):
     '''
     set sac['o'] time for events retrieved from SOD.
     '''
+    phase = kwargs.get('phase',['P'])
     event_depth = st[0].stats.sac['evdp']
     for tr in st:
         arrivals = model.get_travel_times(source_depth_in_km=event_depth,
-                  distance_in_degree=tr.stats.sac['gcarc'],phase_list=['PKIKP'])
+                  distance_in_degree=tr.stats.sac['gcarc'],phase_list=phase)
         time = arrivals[0].time
         tr.stats.sac['o'] = -1*time
     return st

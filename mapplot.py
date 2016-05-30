@@ -114,7 +114,7 @@ def source_reciever_plot(st, **kwargs):
    title = kwargs.get('title',True)
    proj = kwargs.get('proj','eck4')
 
-   m = mapplot(proj)
+   m = mapplot(proj,lat_0=st[0].stats.sac['evla'],lon_0=st[0].stats.sac['evlo'])
    m.drawparallels(np.arange(-80.,81.,20.),labels=[True])
    m.drawmeridians(np.arange(-180.,181.,20.))
    source_coord = add_source(st,m)

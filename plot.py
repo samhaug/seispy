@@ -5,12 +5,19 @@ seis_plot.py includes all functions for plotting seismic data
 '''
 
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
 import scipy
 import obspy
 import h5py
 import numpy as np
 import copy
 
+from matplotlib.transforms import Affine2D
+import mpl_toolkits.axisartist.floating_axes as floating_axes
+import mpl_toolkits.axisartist.angle_helper as angle_helper
+from matplotlib.projections import PolarAxes
+from mpl_toolkits.axisartist.grid_finder import (FixedLocator, MaxNLocator,
+                                                  DictFormatter)
 from seispy.data import phase_window
 from matplotlib import pyplot as plt
 import obspy.signal.filter
@@ -31,6 +38,7 @@ import multiprocessing
 import shutil
 from seispy import mapplot
 from seispy import data
+from seispy import convert
 
 ppt_font =  {'family' : 'sans-serif',
              'style' : 'normal',
@@ -42,6 +50,89 @@ paper_font =  {'family' : 'serif',
              'variant' : 'normal',
              'weight' : 'medium',
              'size' : 'large'}
+
+def plot_hetero(scatter_file):
+    '''
+    Plot heterogeneity file for MORB scatterers on a half cylinder axis
+    '''
+    def setup_axes2(fig, rect):
+        """
+        With custom locator and formatter.
+        Note that the extreme values are swapped.
+        """
+        tr = PolarAxes.PolarTransform()
+
+        pi = np.pi
+        angle_ticks = [(0,'180' ),
+                   (.25*pi,'135' ),
+                   (.5*pi, '90'),
+                   (.75*pi,'45' ),
+                   (pi,'0')]
+        grid_locator1 = FixedLocator([v for v, s in angle_ticks])
+        tick_formatter1 = DictFormatter(dict(angle_ticks))
+
+        grid_locator2 = MaxNLocator(nbins=6)
+
+        grid_helper = floating_axes.GridHelperCurveLinear(
+            tr, extremes=(pi,0, 6371,3481),
+            grid_locator1=grid_locator1,
+            grid_locator2=grid_locator2,
+            tick_formatter1=tick_formatter1,
+            tick_formatter2=None)
+
+        ax1 = floating_axes.FloatingSubplot(fig, rect,
+                          grid_helper=grid_helper)
+        fig.add_subplot(ax1)
+        aux_ax = ax1.get_aux_axes(tr)
+
+        aux_ax.patch = ax1.patch  # for aux_ax to have a clip path as in ax
+        ax1.patch.zorder = 0.9  # but this has a side effect that the patch is
+        # drawn twice, and possibly over some other
+        # artists. So, we decrease the zorder a bit to
+        # prevent this.
+
+        return ax1, aux_ax
+
+    fig = plt.figure(1, figsize=(10, 10))
+
+    #scatter_file = sys.argv[1]
+    #rotate = sys.argv[2]
+    #stream_pickle = sys.argv[3]
+
+    if '.dat' in scatter_file:
+        xy_array = np.genfromtxt(scatter_file)
+        theta = np.radians(float(rotate)) + (np.arctan2(xy_array[:,0],
+                xy_array[:,1]))
+        radius = np.sqrt(xy_array[:,0]**2+xy_array[:,1]**2)
+        plot_array = []
+
+        for ii in range(0,len(theta)):
+            if theta[ii] > np.pi or theta[ii] < 0:
+                continue
+            else:
+                plot_array.append([radius[ii],theta[ii]])
+
+        plot_array = np.array(plot_array)
+
+        ax2, aux_ax2 = setup_axes2(fig, 122)
+        aux_ax2.scatter(plot_array[:,1],plot_array[:,0],
+                        marker='.',color='k',s=2)
+
+    if '.h5' in scatter_file:
+        f = h5py.File(scatter_file,'r')
+        plot_array = f['scatter'][...]
+
+        ax2, aux_ax2 = setup_axes2(fig, 111)
+        aux_ax2.scatter(np.pi-np.radians(plot_array[:,1]),
+                        plot_array[:,0],marker='.',color='k',s=2.0)
+
+    #ax_env = plt.subplot2grid((1,2), (0,0), rowspan=2)
+    #st = obspy.read(stream_pickle)
+    #st = seispy.convert.set_gcarc(st)
+    #seispy.plot.new_precursor_PKIKP(st,ax_grab=ax_env,align=False,
+    #                            filter=(0.5,2.0),time=(-35,10))
+
+    plt.show()
 
 def compare_precursor_PKIKP(**kwargs):
 
@@ -90,6 +181,43 @@ def compare_precursor_PKIKP(**kwargs):
         plt.show()
 
     return env_list
+
+def stack_precursor_PKIKP(st_list_in,**kwargs):
+    '''
+    Stack the precursor amplitudes for PKPdf scattering envelopes
+    '''
+
+    tw = kwargs.get('time',(-30,0))
+    rw = kwargs.get('range',(130,140))
+    ax_grab = kwargs.get('ax_grab',False)
+    interp = kwargs.get('interp','lanczos')
+
+    def plot_env(envelope,rw,tw):
+        e = np.log10(envelope)
+        if ax_grab != False:
+            ax = ax_grab
+        else:
+            fig, ax = plt.subplots()
+        image = ax.imshow(np.log10(np.flipud(envelope)+1e-8),aspect='auto',
+            cmap='Spectral_r',extent=[(tw[0]),(tw[1]),rw[0],rw[1]],
+            interpolation=interp,vmin=-2.0,vmax=0)
+        ax.set_ylabel('Range (degrees)',fontsize=14)
+        ax.set_xlabel(r'Seconds before $PKPdf$',fontsize=14)
+        #ax.text(121,-19,'CMB',color='w',fontsize=14)
+        cbar = plt.colorbar(image,ax=ax)
+        cbar.solids.set_rasterized(True)
+        cbar.set_label(r'$\log_{10}(Amplitude)$',fontsize=14)
+        ax.grid(color='k')
+
+    env_list = []
+    for st in st_list_in:
+        st = convert.set_gcarc(st)
+        env,wave = new_precursor_PKIKP(st,plot=False,filter=(0.5,1.0),time=tw)
+        env_list.append(env)
+    avg_env = np.sum(env_list,axis=0)/len(env_list)
+
+    plot_env(avg_env,rw,tw)
+    plt.show()
 
 def new_precursor_PKIKP(st_in,**kwargs):
 
@@ -180,7 +308,7 @@ def new_precursor_PKIKP(st_in,**kwargs):
             cmap='Spectral_r',extent=[(tw[0]),(tw[1]),rw[0],rw[1]],
             interpolation=interp,vmin=-3.0,vmax=e.max())
         ax.set_ylabel('Range (degrees)',fontsize=14)
-        ax.set_xlabel(r'Seconds before $PKPdf$',fontsize=14)
+        ax.set_xlabel(r'Seconds after $PKPdf$',fontsize=14)
         #ax.text(121,-19,'CMB',color='w',fontsize=14)
         cbar = plt.colorbar(image,ax=ax)
         cbar.solids.set_rasterized(True)
@@ -202,13 +330,16 @@ def new_precursor_PKIKP(st_in,**kwargs):
             #ax1.fill_between(t,w[ii,:],fill,where=w[ii,:] <=fill,
             #                 facecolor='blue',alpha=0.5)
         ax1.set_ylabel('Range (degrees)',fontsize=14)
-        ax1.set_xlabel(r'Seconds before $PKPdf$',fontsize=14)
+        ax1.set_xlabel(r'Seconds after $PKPdf$',fontsize=14)
 
     return  main()
 
 
-def precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,name=False,plot=True):
+def old_precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,
+                        name=False,plot=True):
     '''
+    This is defunct and sloppy code. use new_precursor_PKIKP
+
     Produce colorbar of PKPdf scatterers from Mancinelli & Shearer 2011
     PARAMETERS
     __________
@@ -358,7 +489,7 @@ def vespagram(st_in,**kwargs):
     cmap = kwargs.get('cmap','gnuplot')
     font = kwargs.get('font',paper_font)
     plot = kwargs.get('plot',True)
-    title = kwargs.get('title',True)
+    title = kwargs.get('title',False)
     ax_grab = kwargs.get('ax_grab',False)
 
     st = obspy.core.Stream()
@@ -705,7 +836,7 @@ def section(st,**kwargs):
     fill = kwargs.get('fill',False)
     shift = kwargs.get('shift',False)
     save = kwargs.get('save',False)
-    title = kwargs.get('title',True)
+    title = kwargs.get('title',False)
     x_lim = kwargs.get('x_lim',(-50,1000))
     y_lim = kwargs.get('y_lim',False)
     color = kwargs.get('color',False)
@@ -808,6 +939,8 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
                 else:
                     name_list.append(ii.purist_name)
                     p =  ii.ray_param_sec_degree - P_slow
+                    if ii.name == 'PKIKPPKIKP':
+                        p *= 2.0
                     time = ii.time-P_time
                     x = np.linspace(time-500,time+500)
                     y = (1/p)*(x-time)+ref_degree
