@@ -4,8 +4,45 @@ import numpy as np
 import obspy
 from geopy.distance import great_circle
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem_50")
+model = TauPyModel(model="prem")
 
+
+
+'''
+This module is all about getting the metadata for each trace in a stream
+ready for analysis
+'''
+
+def mineos_convert(st):
+    st = set_baz(st)
+    st = SOD_evdp(st)
+    st = set_gcarc(st)
+    return st
+
+def set_baz(st,**kwargs):
+
+    f = kwargs.get('f',0.0033528106647474805)
+
+    for tr in st:
+        baz = obspy.geodetics.gps2dist_azimuth(tr.stats.sac['evla'],
+                                               tr.stats.sac['evlo'],
+                                               tr.stats.sac['stla'],
+                                               tr.stats.sac['stlo'],f=f)[-1]
+        az = obspy.geodetics.gps2dist_azimuth(tr.stats.sac['evla'],
+                                               tr.stats.sac['evlo'],
+                                               tr.stats.sac['stla'],
+                                               tr.stats.sac['stlo'],f=f)[-2]
+        tr.stats.sac['baz'] = baz
+        tr.stats.sac['az'] = az
+    return st
+
+def master_set(st):
+
+    for tr in st:
+        tr.stats.location = tr.stats.sac['gcarc']
+        tr.stats.sortname = tr.stats.network+tr.stats.station+str(tr.stats.location)
+    st.sort(['sortname'])
+    return st
 
 def set_origin_time(st,**kwargs):
     '''
@@ -81,7 +118,7 @@ def xh2sac(st):
         tr.stats.sac['gcarc'] = np.abs(great_circle(source,stat).km/111.195)
     return st
 
-def axisem_stations(st):
+def axisem_stations(st,name='STATIONS'):
     '''
     Make STATIONS ascii file for a 1D axisem run. remove redundant stations
     '''
@@ -89,7 +126,7 @@ def axisem_stations(st):
         tr.stats.location = tr.stats.station+tr.stats.network
     st.sort(['location'])
 
-    f = open('STATIONS','w')
+    f = open(name,'w')
     for idx,tr in enumerate(st[:-1]):
         if tr.stats.station+tr.stats.network == \
             st[idx+1].stats.station+st[idx].stats.network:

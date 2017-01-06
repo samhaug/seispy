@@ -73,6 +73,15 @@ def dirty_filter(st,**kwargs):
 
     return st
 
+def interp_filter(st,**kwargs):
+    '''
+    interpolate all traces to the same sampling rate
+    '''
+    inter = kwargs.get('interp',10)
+    for tr in st:
+        tr.interpolate(inter)
+    return st
+
 def gimp_filter(st):
     '''
     Removes seismograms from trace if they have lengths too short. Makes all

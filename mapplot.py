@@ -11,11 +11,37 @@ import myplot.basemap
 import h5py
 from obspy.imaging.beachball import Beachball
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem_50")
+model = TauPyModel(model="prem")
 from geopy.distance import VincentyDistance
 import geopy
 
 cmt = h5py.File('/home/samhaug/Utils/CMT_catalog/cmt.h5','r')
+
+
+def plot(st):
+
+    width = 28000000
+    fig = plt.figure(figsize=(10,10))
+    lat_0 = st[0].stats.sac['evla']
+    lon_0 = st[0].stats.sac['evlo']
+    m = Basemap(projection='ortho',lat_0=lat_0,lon_0=lon_0)
+    xpt, ypt = m(lon_0, lat_0)
+    m.scatter(xpt,ypt,s=99,c='red',marker='o',lw=1)
+    # fill background.
+    #m.drawmapboundary(fill_color='aqua')
+    # draw coasts and fill continents.
+    m.drawcoastlines(linewidth=0.5)
+    #m.fillcontinents(color='coral',lake_color='aqua')
+    # 20 degree graticule.
+    m.drawparallels(np.arange(-80,81,20))
+    m.drawmeridians(np.arange(-180,180,20))
+    # draw a black dot at the center.
+    for tr in st:
+        lat_0 = tr.stats.sac['stla']
+        lon_0 = tr.stats.sac['stlo']
+        xpt, ypt = m(lon_0, lat_0)
+        m.scatter(xpt,ypt,s=5,c='green',marker='o',lw=0)
+    plt.show()
 
 def beachball(tr, **kwargs):
    plot = kwargs.get('plot',True)
@@ -93,7 +119,7 @@ def add_station(coord_list, map, **kwargs):
    """
    From coordinate list, add stations to map
    """
-   model = TauPyModel(model="prem_50")
+   model = TauPyModel(model="prem")
    mark = kwargs.get('marker','v')
    color = kwargs.get('color','yellow')
    size = kwargs.get('size',10)
@@ -112,7 +138,7 @@ def source_reciever_plot(st, **kwargs):
    mt = kwargs.get('moment_tensor',False)
    w = kwargs.get('width',(900000,900000))
    title = kwargs.get('title',True)
-   proj = kwargs.get('proj','eck4')
+   proj = kwargs.get('proj','aeqd')
 
    m = mapplot(proj,lat_0=st[0].stats.sac['evla'],lon_0=st[0].stats.sac['evlo'])
    m.drawparallels(np.arange(-80.,81.,20.),labels=[True])
@@ -152,7 +178,7 @@ def source_reciever_plot(st, **kwargs):
        plt.show()
 
 def get_pierce_points(st,phase,depth,h5_out):
-   model = TauPyModel(model="prem_50")
+   model = TauPyModel(model="prem")
    try:
        f = h5py.File('/home/samhaug/anaconda2/lib/python2.7/site-packages/seispy'+
                 h5_out,'w')

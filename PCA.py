@@ -3,7 +3,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem_50")
+model = TauPyModel(model="prem")
 import seispy
 import scipy
 

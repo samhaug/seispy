@@ -7,7 +7,7 @@ import filter
 import data
 import seispy.data
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem_50")
+model = TauPyModel(model="prem")
 
 def make_dict(st_1, st_2, **kwargs):
     '''

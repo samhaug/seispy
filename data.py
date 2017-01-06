@@ -6,12 +6,139 @@ import numpy as np
 from obspy.taup import TauPyModel
 from matplotlib import pyplot as plt
 from scipy.signal import argrelextrema
-model = TauPyModel(model="prem_50")
+model = TauPyModel(model="prem")
+import itertools
+import seispy.convert
 
 
-###############################################################################
+def rotate_phase(stz,stn,ste,phase):
+    '''
+    Rotate a three component trace in zne to coordinate system for specific 
+    phase.
+    do not normalize or process the array in any way.
+    '''
+
+    def make_R(i,baz):
+        R = np.matrix([[np.cos(i),-1*np.sin(i)*np.sin(baz),-1*np.sin(i)*np.cos(baz)],
+                       [np.sin(i),np.cos(i)*np.sin(baz),np.cos(i)*np.cos(baz)],
+                       [0,-1*np.cos(baz),np.sin(baz)]
+                      ])
+        return R
+
+    stz = seispy.convert.master_set(stz)
+    stn = seispy.convert.master_set(stn)
+    ste = seispy.convert.master_set(ste)
+    stz_list = []
+    ste_list = []
+    stn_list = []
+
+    for tr in stz:
+        stz_list.append(tr.stats.sortname)
+    for tr in stn:
+        stn_list.append(tr.stats.sortname)
+    for tr in ste:
+        ste_list.append(tr.stats.sortname)
+
+    d = [stz_list,ste_list,stn_list]
+    'Find common stations in array'
+    common = list(reduce(set.intersection, [set(item) for item in d ]))
+    print len(common)
+
+    stz_list = []
+    ste_list = []
+    stn_list = []
+    for tr in stz:
+        if tr.stats.sortname not in common:
+            stz.remove(tr)
+        elif tr.stats.sortname in stz_list:
+            stz.remove(tr)
+        stz_list.append(tr.stats.sortname)
+    for tr in ste:
+        if tr.stats.sortname not in common:
+            ste.remove(tr)
+        elif tr.stats.sortname in ste_list:
+            ste.remove(tr)
+        ste_list.append(tr.stats.sortname)
+    for tr in stn:
+        if tr.stats.sortname not in common:
+            stn.remove(tr)
+        elif tr.stats.sortname in stn_list:
+            stn.remove(tr)
+        stn_list.append(tr.stats.sortname)
+
+    stz = seispy.convert.master_set(stz)
+    stn = seispy.convert.master_set(stn)
+    ste = seispy.convert.master_set(ste)
+
+    stl = stz.copy()
+    stq = stz.copy()
+    stt = stz.copy()
+
+    print len(stz),len(ste),len(stn)
+    for idx,tr in enumerate(stz):
+
+        if len(stz[idx].data) == len(ste[idx].data) == len(stn[idx].data):
+            baz = np.radians(tr.stats.sac['baz'])
+            gcarc = tr.stats.sac['gcarc']
+            h = tr.stats.sac['evdp']
+            arrivals = model.get_travel_times(source_depth_in_km=h,
+                                          distance_in_degree=gcarc,
+                                          phase_list=phase)
+            i = np.radians(arrivals[0].incident_angle)
+            R = make_R(i,baz)
+            zen = [stz[idx].data,ste[idx].data,stn[idx].data]
+            lqt = (R*zen)
+            stl[idx].data = np.array(lqt[0])[0,:]
+            stq[idx].data = np.array(lqt[1])[0,:]
+            stt[idx].data = np.array(lqt[2])[0,:]
+        else:
+            stz.remove(stz[idx])
+            ste.remove(ste[idx])
+            stn.remove(stn[idx])
+            stl.remove(stl[idx])
+            stq.remove(stq[idx])
+            stt.remove(stt[idx])
+            continue
+
+    return stl,stq,stt
+
+
+def roll_zero(array,n):
+    '''
+    Roll and pad with zeros
+    '''
+    if n < 0:
+        array = np.roll(array,n)
+        array[n::] = 0
+    else:
+        array = np.roll(array,n)
+        array[0:n] = 0
+    return array
+
+def clip_traces(st_in):
+
+    st = st_in.copy()
+    st_out = obspy.core.Stream()
+    depth = st[0].stats.sac['evdp']
+    samp = st[0].stats.sampling_rate
+    for tr in st:
+        starttime = tr.stats.starttime
+        gcarc = tr.stats.sac['gcarc']
+        arrival = model.get_travel_times(distance_in_degree=gcarc,
+                               source_depth_in_km=depth,
+                               phase_list=['P'])
+        phasetime = arrival[0].time
+        cuttimestart = starttime+phasetime-20+tr.stats.sac['o']
+        cuttimeend = starttime+phasetime+300+tr.stats.sac['o']
+
+        st_out.append(tr.slice(cuttimestart,cuttimeend))
+        #time_ind = int(time*samp)
+        #start_ind = int((time-100)*samp)
+        #end_ind = int((time+500)*samp)
+        #tr.data = tr.data[start_ind:end_ind]
+    return st_out
+
 def roll(st,seconds):
-###############################################################################
     '''
     Shift all traces in stream by seconds
     '''
@@ -20,9 +147,7 @@ def roll(st,seconds):
         tr.data = np.roll(tr.data,shift)
     return st
 
-###############################################################################
 def phase_window(tr,phases,window_tuple):
-###############################################################################
     '''
     return window around PKIKP phase
     '''
@@ -139,7 +264,7 @@ def normalize_on_phase(st,**kwargs):
     normalize traces in stream based on maximum value in phase window
     '''
     phase = kwargs.get('phase',['P'])
-    window_tuple = kwargs.get('window_tuple',(-10,10))
+    window_tuple = kwargs.get('window_tuple',(-5,5))
 
     for tr in st:
         window = phase_window(tr,phase,window_tuple)
@@ -270,11 +395,38 @@ def RT_ratio(stt,str):
     plt.plot(x,p(x),c='k')
     plt.show()
 
+def slant(st_in,slowness):
+    '''
+    shift stack by slowness relative to center slowness
+    '''
+    st = st_in.copy()
+    gc_list = []
+    for tr in st:
+        gc_list.append(tr.stats.sac['gcarc'])
 
+    mean_dist = np.mean(gc_list)
+    samp_rate = st[0].stats.sampling_rate
 
+    for tr in st:
+        dist = tr.stats.sac['gcarc']-mean_dist
+        tr.data = roll_zero(tr.data,int(slowness*dist*samp_rate))
+    return st
 
+def pkp_precursor_polyfit(precursor_env):
 
+   x = np.linspace(0,1,num=precursor_env.shape[1])
+   p_list=[]
+   for ii in precursor_env:
+       p = np.polyfit(x,ii,3)
+       p_list.append(p)
 
+   for jdx,jj in enumerate(p_list):
+       p = np.poly1d(jj)
+       plt.plot(x,jdx+precursor_env[jdx],color='k')
+       plt.plot(x,jdx+p(x),color='r')
+   plt.show()
+
+   return p_list
 
 
 

@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import obspy
 import seispy
 from obspy.taup import TauPyModel
-model = TauPyModel(model='prem_50')
+model = TauPyModel(model='prem')
 
 def gui_pick(st):
 

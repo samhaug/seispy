@@ -19,6 +19,10 @@ paper_font =  {'family' : 'serif',
 def bootstrap_compute(st,**kwargs):
     repeat = kwargs.get('repeat',100)
     i_resamp = kwargs.get('resamp',len(st))
+    p_lim = kwargs.get('p_lim',(-1.5,1.5))
+    x_lim = kwargs.get('x_lim',(-10,160))
+    p_tick = kwargs.get('p_tick',-0.1)
+    vesp_row = kwargs.get('vesp_row',1)
 
     def random_gen(i_resamp):
         rand_list = []
@@ -36,13 +40,12 @@ def bootstrap_compute(st,**kwargs):
     for ii in range(repeat):
         rand_list = random_gen(len(st))
         st_resamp = resample_stream(st,rand_list)
-        vesp = plot.vespagram(st_resamp,plot=False)
+        vesp = plot.vespagram(st_resamp,p_lim=p_lim,
+                              x_lim=x_lim,p_tick=p_tick,plot=False)
         vesp_list.append(vesp)
-    vesp_array = np.zeros((len(vesp_list),vesp_list[0].shape[0],vesp_list[0].shape[1]))
-    for ii in range(len(vesp_list)):
-        vesp_array[ii,:,:] = vesp_list[ii]
-    std_array = np.std(vesp_array,axis=0)
-    return std_array
+
+    std_array = np.std(vesp_list,axis=0)
+    return std_array 
 
 def bootstrap_color(std_array,**kwargs):
     window_tuple = kwargs.get('window_tuple',(-10,230))

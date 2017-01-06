@@ -5,7 +5,7 @@ import numpy as np
 import obspy
 from geopy.distance import great_circle
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem_50")
+model = TauPyModel(model="prem")
 from matplotlib import pyplot as plt
 import glob
 

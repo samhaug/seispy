@@ -479,8 +479,8 @@ def vespagram(st_in,**kwargs):
 
     window_tuple = kwargs.get('x_lim',(-10,230))
     window_phase = kwargs.get('window_phase',['P'])
-    window_slowness = kwargs.get('window_slowness',(-1.5,1.5))
-    slowness_tick = kwargs.get('slowness_tick',-0.1)
+    window_slowness = kwargs.get('p_lim',(-1.5,1.5))
+    slowness_tick = kwargs.get('p_tick',-0.1)
     phase_list = kwargs.get('phase_list',False)
     plot_line = kwargs.get('plot_line',False)
     n_root = kwargs.get('n_root',2.0)
@@ -555,8 +555,6 @@ def vespagram(st_in,**kwargs):
     mn_r = mean_range(st)
     evdp = st[0].stats.sac['evdp']
 
-    #st.normalize()
-
     vesp_y = np.linspace(0,0,num=st[0].data.shape[0])
     vesp_R = np.linspace(0,0,num=st[0].data.shape[0])
     for ii in np.arange(window_slowness[0],window_slowness[1],-1*slowness_tick):
@@ -566,8 +564,9 @@ def vespagram(st_in,**kwargs):
     vesp_y = vesp_y[1::,:]
     vesp_R1 = vesp_R[1::,:]*2
     if plot == False:
+        vesp_R = vesp_R-vesp_R.mean(axis=1,keepdims=True)
         return vesp_R
-    vesp_y = vesp_y/ vesp_y.max()
+    #vesp_y = vesp_y/ vesp_y.max()
 
     if ax_grab != False:
         ax = ax_grab
@@ -591,7 +590,7 @@ def vespagram(st_in,**kwargs):
         vesp_R= np.vstack((vesp_R,R))
     vesp_y = vesp_y[1::,:]
     vesp_R = vesp_R[1::,:]
-    vesp_y = vesp_y/ vesp_y.max()
+    #vesp_y = vesp_y/ vesp_y.max()
 
     image_1 = ax[1].imshow(np.log10(vesp_y), aspect='auto',
          interpolation='lanczos', extent=[window_tuple[0],
@@ -696,7 +695,7 @@ def plot(tr,**kwargs):
     ax.plot(time,tr.data,c='k')
     ax.grid()
     ax.set_title('Network: {}, Station: {}, Channel: {},\
- Dist (deg): {}, Depth (km): {} \nStart: {} \nEnd: {}'.format(
+    Dist (deg): {}, Depth (km): {} \nStart: {} \nEnd: {}'.format(
                   tr.stats.network,
                   tr.stats.station,
                   tr.stats.channel,
@@ -729,6 +728,8 @@ def component_plot(tr_list,**kwargs):
                phase_list = phase_list)
     colors = ['b','g','r','c','m','y','k','b','g','r','c','m','y']
     trace_c = ['k','m','goldenrod']
+    title = kwargs.get('title',False)
+
 
     if separate:
         fig, ax = plt.subplots(len(tr_list), sharey=True,sharex=True,
@@ -762,7 +763,8 @@ def component_plot(tr_list,**kwargs):
             ax[1].set_xlim((arrivals[0].time+window_tuple[0],
                         arrivals[0].time+window_tuple[1]))
         ax[-1].set_xlabel('Seconds after event')
-        ax[0].set_title('{} \n Depth (km): {} Dist (deg): {}, Az (deg): {}, {}, {}'.format(
+        if title == True:
+            ax[0].set_title('{} \n Depth (km): {} Dist (deg): {}, Az (deg): {}, {}, {}'.format(
               tr_list[0].stats.starttime,
               str(round(tr_list[0].stats.sac['evdp'],3)),
               str(round(tr_list[0].stats.sac['gcarc'],3)),
@@ -817,6 +819,38 @@ def parallel_add_to_axes(trace_tuple):
     line = matplotlib.lines.Line2D(time,data+dist,alpha=0.5,c='k',lw=1)
     return line
 
+def simple_section(st,**kwargs):
+    '''
+    Simpler section plotter for obspy stream object
+    '''
+    a_list = kwargs.get('a_list',True)
+
+    fig,ax = plt.subplots(figsize=(10,15))
+
+    def plot(tr,o,ax):
+        e = tr.stats.npts/tr.stats.sampling_rate
+        t = np.linspace(o,o+e,num=tr.stats.npts)
+        ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,color='k')
+
+    if a_list == True:
+        for tr in st:
+            plot(tr,0,ax)
+
+    elif type(a_list) == list:
+        if len(a_list) != 1:
+            print('Must have phase identifier string of len = 1')
+            return
+        else:
+            for tr in st:
+                evdp = tr.stats.sac['evdp']
+                gcarc = tr.stats.sac['gcarc']
+                P = model.get_travel_times(distance_in_degree=gcarc,
+                    source_depth_in_km=evdp,
+                    phase_list = a_list)
+                P_time = P[0].time
+                plot(tr,-1*(P_time+tr.stats.sac['o']),ax)
+    plt.show()
+
 def section(st,**kwargs):
     '''
     Plot record section of obspy stream object
@@ -841,7 +875,7 @@ def section(st,**kwargs):
     y_lim = kwargs.get('y_lim',False)
     color = kwargs.get('color',False)
     picker = kwargs.get('picker',False)
-    align_phase = kwargs.get('align_phase',['P'])
+    align_phase = kwargs.get('align_phase',['P','Pdiff'])
     name = kwargs.get('name_plot',False)
     az_color = kwargs.get('az_color',False)
     ax_grab = kwargs.get('ax_grab',False)
@@ -877,15 +911,8 @@ def section(st,**kwargs):
 
         if shift:
             ax.set_xlabel('Seconds')
-        if title == True:
-            ax.set_title("""Start: {} Coord: ({}$^\circ$,{}$^\circ$)
-Depth (km): {}, Channel: {}, Mag: {}""".format(
-             st[0].stats.starttime.isoformat(),
-             round(st[0].stats.sac['evla'],2),
-             round(st[0].stats.sac['evlo'],2),
-             round(st[0].stats.sac['evdp'],3),
-             st[0].stats.channel,
-             os.getcwd().split('-')[3][-2]+'.'+os.getcwd().split('-')[3][-1]))
+        if title != False:
+           ax.set_title(title)
         if labels:
             y1, y2 = ax.get_ylim()
             ax_n = ax.twinx()
@@ -983,6 +1010,7 @@ Depth (km): {}, Channel: {}, Mag: {}""".format(
             start = tr.stats.starttime+o
             end = tr.stats.endtime+o
             if align_phase == None:
+                align_phase == ['Pdiff']
                 p_time = o
             else:
                 arrivals = model.get_travel_times(
@@ -1039,10 +1067,13 @@ def az_section(st, phase, **kwargs):
         ax.plot(time,ii[0]+ii[1],'k',alpha=0.5)
     plt.show()
 
-def fft(tr, freqmin=0.0, freqmax=2.0):
+def fft(tr,**kwargs):
     '''
     plot fast fourier transform of trace object
     '''
+    freqmin = kwargs.get('freqmin',0.0)
+    freqmax = kwargs.get('freqmax',2.0)
+    plot = kwargs.get('plot',True)
 
     Fs = tr.stats.sampling_rate  # sampling rate
     Ts = tr.stats.delta # sampling interval
@@ -1060,18 +1091,22 @@ def fft(tr, freqmin=0.0, freqmax=2.0):
     if tr.data.shape[0] - t.shape[0] == 1:
         t = np.hstack((t,0))
 
-    fig, ax = plt.subplots(2, 1,figsize=(15,8))
-    ax[0].plot(t,tr.data,'k')
-    ax[0].set_xlabel('Time')
-    ax[0].set_ylabel('Amplitude')
-    ax[0].grid()
-    ax[1].plot(frq,abs(Y),'r') # plotting the spectrum
-    ax[1].set_xlim([freqmin,freqmax])
-    ax[1].set_xticks(np.arange(freqmin,freqmax,0.25))
-    ax[1].set_xlabel('Freq (Hz)')
-    ax[1].set_ylabel('|Y(freq)|')
-    ax[1].grid()
-    plt.show()
+    if plot == False:
+        return frq, abs(Y)
+    else:
+
+        fig, ax = plt.subplots(2, 1,figsize=(15,8))
+        ax[0].plot(t,tr.data,'k')
+        ax[0].set_xlabel('Time')
+        ax[0].set_ylabel('Amplitude')
+        ax[0].grid()
+        ax[1].plot(frq,abs(Y),'r') # plotting the spectrum
+        ax[1].set_xlim([freqmin,freqmax])
+        ax[1].set_xticks(np.arange(freqmin,freqmax,0.25))
+        ax[1].set_xlabel('Freq (Hz)')
+        ax[1].set_ylabel('|Y(freq)|')
+        ax[1].grid()
+        plt.show()
 
 def express_plot(st, **kwargs):
     phase_list = kwargs.pop('phase_list',['P'])
@@ -1091,6 +1126,49 @@ def express_plot(st, **kwargs):
     st.write(fig_dir+name+'/'+name+'.SAC',format='SAC')
 
 
+def new_stack_amp(st,**kwargs):
+    '''
+    stack amplitude of vespagram along slope
+
+    in_coord_list = [xdata0,ydata0,xdata1,ydata1]
+    '''
+
+    ax_grab = kwargs.get('ax_grab',False)
+    x_lim = kwargs.get('x_lim',(-10,160))
+    p_tick= kwargs.get('p_tick',-0.02)
+    in_coord_list = kwargs.get('coord_list',False)
+
+    vesp = vespagram(st,title=False,slowness_tick=-0.01,
+                                 plot=False,x_lim=x_lim,p_tick=p_tick)
+    vesp = vesp-vesp.mean(axis=1,keepdims=True)
+
+    if in_coord_list == False:
+        def onclick(event):
+            print('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+                  (event.button, event.x, event.y, event.xdata, event.ydata))
+            coord_list.append((event.xdata,event.ydata))
+
+        fig1,ax1 = plt.subplots()
+        coord_list = []
+        cid = fig1.canvas.mpl_connect('button_press_event', onclick)
+        ax1.imshow(np.log10(vesp**2),aspect='auto',interpolation='none')
+        plt.show()
+
+        x0,y0 = coord_list[0][0],coord_list[0][1]
+        x1,y1 = coord_list[1][0],coord_list[1][1]
+    else:
+        x0,y0,x1,y1 = in_coord_list[0],in_coord_list[1],in_coord_list[2],
+        in_coord_list[3]
+
+    length = int(np.hypot(x1-x0,y1-y0))
+    x, y = np.linspace(x0,x1,length), np.linspace(y0,y1,length)
+    zi = vesp[x.astype(np.int), y.astype(np.int)]
+    fig, axes = plt.subplots(nrows=2)
+    axes[0].imshow(np.log10(z**2),aspect='auto')
+    axes[0].plot([x0, x1], [y0, y1], 'ro-')
+    axes[1].plot(zi)
+    plt.show()
+
 def stack_amp(st,**kwargs):
     '''
     stack amplitude of vespagram along slope
@@ -1100,35 +1178,74 @@ def stack_amp(st,**kwargs):
     y_int = kwargs.get('y_int',73)
     ax_grab = kwargs.get('ax_grab',False)
     x_lim = kwargs.get('x_lim',(-10,120))
+    p_tick= kwargs.get('p_tick',-0.05)
+    p_lim = kwargs.get('p_lim',(-3.0,3.0))
     return_tr = kwargs.get('return_tr',False)
+    plot = kwargs.get('plot',True)
+    in_coord_list = kwargs.get('coord_list',False)
 
-    vesp = vespagram(st,title=False,slowness_tick=-0.02,
-                                 plot=False,x_lim=x_lim)
+    if type(st) == np.ndarray:
+        vesp = st
+    else:
+        vesp = vespagram(st,title=False,slowness_tick=-0.01,
+                             plot=False,x_lim=x_lim,p_tick=p_tick,
+                             p_lim=p_lim)
+        vesp = vesp-vesp.mean(axis=1,keepdims=True)
 
+    if in_coord_list == False:
+        fig1,ax1 = plt.subplots()
+
+        coord_list = []
+        def onclick(event):
+            print('button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+                  (event.button, event.x, event.y, event.xdata, event.ydata))
+            coord_list.append((event.xdata,event.ydata))
+        cid = fig1.canvas.mpl_connect('button_press_event', onclick)
+        ax1.imshow(np.log10(vesp**2),aspect='auto',interpolation='none')
+        plt.show()
+        x0,y0 = coord_list[0][0],coord_list[0][1]
+        x1,y1 = coord_list[1][0],coord_list[1][1]
+    else:
+        x0,y0,x1,y1 = in_coord_list[0],in_coord_list[1],in_coord_list[2],\
+                       in_coord_list[3]
+
+    print x0,y0,x1,y1
+    slope = 1./(float(y0-y1)/(x0-x1))
+    y_int = int(y0-(1/slope)*x0)
+
+    print slope,y_int
     section_list = []
-    x_list = np.arange(0,vesp.shape[1],slope)
+    x_list = np.arange(0,vesp.shape[1],np.abs(slope))
     for idx, ii in enumerate(x_list):
+        if slope < 0:
+            idx *= -1
         try:
             section_list.append(vesp[y_int+idx,x_list[idx]:x_list[idx+1]])
         except IndexError:
             section_list.append(vesp[y_int+idx,x_list[idx]::])
             section_list[-1] = np.hstack((section_list[-1],
                        np.zeros(section_list[-2].size-section_list[-1].size)))
-    section = np.array(section_list)
-    section = np.reshape(section,section.size,order='C')
+    a = np.array(section_list)
+    section = np.array([0])
+    for ii in a:
+        section = np.hstack((section,ii))
+    if slope < 0:
+        section = section[::-1]
 
-    try:
-        section = section/np.abs(section).max()
-    except ValueError:
-        print('Problem with normalization')
-        return section
+    #try:
+    #    section = section/np.abs(section).max()
+    #except ValueError:
+    #    print('Problem with normalization')
+    #    return section
 
+    return section
     if ax_grab == False:
         fig, ax = plt.subplots(figsize=(10,5))
     else:
         ax = ax_grab
 
-    time = np.linspace(-10,120,num=section.shape[0])
+    '''
+    time = np.linspace(x_lim[0],x_lim[1],num=section.shape[0])
     ax.plot(time,section,color='k')
     ax.grid()
     ax.set_xlabel('Seconds after P')
@@ -1147,11 +1264,75 @@ def stack_amp(st,**kwargs):
         tr.stats.sac['gcarc'] = 0
         tr.stats.sac['evdp'] = 0
 
-
         return tr
+    '''
+
+def slowness_stack(st,slowness):
+    '''
+    Stack on slowness relative to P
+    '''
+    def roll_zero(array,n):
+        if n < 0:
+            array = np.roll(array,n)
+            array[n::] = 0
+        else:
+            array = np.roll(array,n)
+            array[0:n] = 0
+        return array
+
+    slowness *= -1
+
+    range_list = []
+    for tr in st:
+        range_list.append(tr.stats.sac['gcarc'])
+    mn_range = np.mean(range_list)
+    print 'Mean range', mn_range
+
+    arrivals = model.get_travel_times(
+               distance_in_degree=mn_range,
+               source_depth_in_km=st[0].stats.sac['evdp'],
+               phase_list = ['P'])
+
+    P_slow = arrivals[0].ray_param_sec_degree
+
+    d = st[0].stats.delta
+    stack = []
+    for tr in st:
+        az = tr.stats.sac['gcarc']-mn_range
+        shift_in_sec = (-1*P_slow+slowness)*az
+        shift_in_bin = int(shift_in_sec/d)
+        stack.append(roll_zero(tr.data,shift_in_bin))
+
+    stack = np.mean(stack,axis=0)
+    t = np.linspace(0,st[0].stats.endtime-st[0].stats.starttime,
+                    num=len(st[0].data))
+    plt.plot(t,stack)
+    plt.show()
+    return stack
 
 
+def pick_traces(st):
 
+    remove_list = []
+
+    fig,ax = plt.subplots()
+    for tr in st:
+        data = tr.data/np.max(np.abs(tr.data[600::]))
+        ax.plot(data,alpha=0.3,picker=5,
+                label=tr.stats.network+'.'+tr.stats.station)
+
+    def on_pick(event):
+        artist = event.artist
+        artist.set_c('white')
+        artist.set_alpha(0.0)
+        remove_list.append(artist.get_label())
+        fig.canvas.draw()
+
+    fig.canvas.mpl_connect('pick_event', on_pick)
+    plt.show()
+    for tr in st:
+        if tr.stats.network+'.'+tr.stats.station in remove_list:
+            st.remove(tr)
 
 
 
