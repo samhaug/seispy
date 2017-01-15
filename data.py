@@ -170,7 +170,7 @@ def align_on_phase(st, **kwargs):
     '''
     phase = kwargs.get('phase',['P'])
     a_min = kwargs.get('min',True)
-    window_tuple = kwargs.get('window_tuple',(-5,5))
+    window_tuple = kwargs.get('window_tuple',(-10,10))
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)

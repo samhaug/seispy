@@ -819,18 +819,31 @@ def parallel_add_to_axes(trace_tuple):
     line = matplotlib.lines.Line2D(time,data+dist,alpha=0.5,c='k',lw=1)
     return line
 
+def compare_section(st_list,**kwargs):
+    fig, ax = plt.subplots(figsize=(10,15))
+    a_list = kwargs.get('a_list',True)
+    c_list = ['k','b','g','r']
+    for idx,st in enumerate(st_list):
+        simple_section(st,fig=fig,ax=ax,color=c_list[idx],a_list=a_list)
+
 def simple_section(st,**kwargs):
     '''
     Simpler section plotter for obspy stream object
     '''
     a_list = kwargs.get('a_list',True)
+    fig = kwargs.get('fig',None)
+    ax = kwargs.get('ax',None)
+    color = kwargs.get('color','k')
 
-    fig,ax = plt.subplots(figsize=(10,15))
+    if fig == None and ax == None:
+        fig,ax = plt.subplots(figsize=(10,15))
+    else:
+        print('using outside figure')
 
     def plot(tr,o,ax):
         e = tr.stats.npts/tr.stats.sampling_rate
         t = np.linspace(o,o+e,num=tr.stats.npts)
-        ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,color='k')
+        ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,color=color)
 
     if a_list == True:
         for tr in st:
