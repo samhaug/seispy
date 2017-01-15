@@ -819,6 +819,9 @@ def parallel_add_to_axes(trace_tuple):
     line = matplotlib.lines.Line2D(time,data+dist,alpha=0.5,c='k',lw=1)
     return line
 
+def compare_phase(std,sts,idex,**kwargs):
+    compare_section(std[idex:idex+1],sts[idex:idex+1],**kwargs)
+
 def compare_section(std,sts,**kwargs):
     '''
     compare two streams, std is data and sts is synthetic
