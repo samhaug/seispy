@@ -264,13 +264,24 @@ def normalize_on_phase(st,**kwargs):
     normalize traces in stream based on maximum value in phase window
     '''
     phase = kwargs.get('phase',['P'])
-    window_tuple = kwargs.get('window_tuple',(-5,5))
+    window_tuple = kwargs.get('window_tuple',(-10,10))
 
     for tr in st:
         window = phase_window(tr,phase,window_tuple)
         tr.data = tr.data/np.abs(window.data).max()
     return st
 
+###############################################################################
+def normalize_on_phase_range(st,**kwargs):
+###############################################################################
+
+    phase = kwargs.get('phase',['P'])
+    window_tuple = kwargs.get('window_tuple',(-100,100))
+
+    for tr in st:
+        window = phase_window(tr,phase,window_tuple)
+        tr.data = tr.data/np.mean(np.abs(window.data))
+    return st
 
 ###############################################################################
 def periodic_corr(data, deconvolution):

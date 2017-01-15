@@ -819,12 +819,43 @@ def parallel_add_to_axes(trace_tuple):
     line = matplotlib.lines.Line2D(time,data+dist,alpha=0.5,c='k',lw=1)
     return line
 
-def compare_section(st_list,**kwargs):
-    fig, ax = plt.subplots(figsize=(10,15))
+def compare_section(std,sts,**kwargs):
+    '''
+    compare two streams, std is data and sts is synthetic
+    '''
     a_list = kwargs.get('a_list',True)
-    c_list = ['k','b','g','r']
-    for idx,st in enumerate(st_list):
-        simple_section(st,fig=fig,ax=ax,color=c_list[idx],a_list=a_list)
+    fig = kwargs.get('fig',None)
+    ax = kwargs.get('ax',None)
+
+    fig,ax = plt.subplots(figsize=(10,15))
+
+    for ii in range(0,len(std)):
+        try:
+            ds = std[ii].stats.starttime
+            ss = sts[ii].stats.starttime
+            ddelt = std[ii].stats.delta
+            sdelt = sts[ii].stats.delta
+            dpts = std[ii].stats.npts
+            spts = sts[ii].stats.npts
+            t0 = min(ss,ds)
+            P_time = 0
+
+            if a_list != True:
+                evdp = std[ii].stats.sac['evdp']
+                gcarc = std[ii].stats.sac['gcarc']
+                P = model.get_travel_times(distance_in_degree=gcarc,
+                    source_depth_in_km=evdp,
+                    phase_list = a_list)
+                P_time += P[0].time
+
+            t_dat = np.linspace(ds-t0,ds-t0+dpts*ddelt,num=dpts)
+            t_syn = np.linspace(ss-t0,ss-t0+spts*sdelt,num=spts)
+            ax.plot(t_dat-P_time,std[ii].data+std[ii].stats.sac['gcarc'],alpha=0.5,color='k')
+            ax.plot(t_syn-P_time,sts[ii].data+sts[ii].stats.sac['gcarc'],alpha=0.5,color='r')
+        except IndexError:
+            plt.show()
+
+    plt.show()
 
 def simple_section(st,**kwargs):
     '''
