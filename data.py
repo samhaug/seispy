@@ -77,12 +77,11 @@ def rotate_phase(stz,stn,ste,phase):
     print len(stz),len(ste),len(stn)
     for idx,tr in enumerate(stz):
 
-        baz = np.radians(tr.stats.sac['baz'])
-        baz = obspy.geodetics.base.gps2dist_azimuth(
+        baz = np.radians(obspy.geodetics.base.gps2dist_azimuth(
               tr.stats.sac['evla'],
               tr.stats.sac['evlo'],
               tr.stats.sac['stla'],
-              tr.stats.sac['stlo'])[-1]
+              tr.stats.sac['stlo'])[-1])
         gcarc = tr.stats.sac['gcarc']
         h = tr.stats.sac['evdp']
         arrivals = model.get_travel_times(source_depth_in_km=h,
@@ -99,7 +98,6 @@ def rotate_phase(stz,stn,ste,phase):
         stt[idx].data = np.array(lqt[2])[0,:]
 
     return stl,stq,stt
-
 
 def roll_zero(array,n):
     '''
@@ -149,6 +147,7 @@ def phase_window(tr,phase,**kwargs):
     '''
     return window around PKIKP phase
     '''
+    tr = tr.copy()
     window_tuple = kwargs.get('window',(-10,10))
 
     tr.stats.distance = tr.stats.sac['gcarc']
@@ -267,7 +266,7 @@ def normalize_on_phase(st,**kwargs):
     window_tuple = kwargs.get('window_tuple',(-10,10))
 
     for tr in st:
-        window = phase_window(tr,phase,window_tuple)
+        window = phase_window(tr,phase,window_tuple=window_tuple)
         tr.data = tr.data/np.abs(window.data).max()
     return st
 
