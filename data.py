@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/samhaug/anaconda2/bin/python
 
 import scipy
 import obspy
@@ -6,7 +6,7 @@ import numpy as np
 from obspy.taup import TauPyModel
 from matplotlib import pyplot as plt
 from scipy.signal import argrelextrema
-model = TauPyModel(model="prem")
+model = TauPyModel(model="prem50")
 import itertools
 import seispy.convert
 
@@ -77,28 +77,26 @@ def rotate_phase(stz,stn,ste,phase):
     print len(stz),len(ste),len(stn)
     for idx,tr in enumerate(stz):
 
-        if len(stz[idx].data) == len(ste[idx].data) == len(stn[idx].data):
-            baz = np.radians(tr.stats.sac['baz'])
-            gcarc = tr.stats.sac['gcarc']
-            h = tr.stats.sac['evdp']
-            arrivals = model.get_travel_times(source_depth_in_km=h,
+        baz = np.radians(tr.stats.sac['baz'])
+        baz = obspy.geodetics.base.gps2dist_azimuth(
+              tr.stats.sac['evla'],
+              tr.stats.sac['evlo'],
+              tr.stats.sac['stla'],
+              tr.stats.sac['stlo'])[-1]
+        gcarc = tr.stats.sac['gcarc']
+        h = tr.stats.sac['evdp']
+        arrivals = model.get_travel_times(source_depth_in_km=h,
                                           distance_in_degree=gcarc,
                                           phase_list=phase)
-            i = np.radians(arrivals[0].incident_angle)
-            R = make_R(i,baz)
-            zen = [stz[idx].data,ste[idx].data,stn[idx].data]
-            lqt = (R*zen)
-            stl[idx].data = np.array(lqt[0])[0,:]
-            stq[idx].data = np.array(lqt[1])[0,:]
-            stt[idx].data = np.array(lqt[2])[0,:]
-        else:
-            stz.remove(stz[idx])
-            ste.remove(ste[idx])
-            stn.remove(stn[idx])
-            stl.remove(stl[idx])
-            stq.remove(stq[idx])
-            stt.remove(stt[idx])
-            continue
+        i = np.radians(arrivals[0].incident_angle)
+        R = make_R(i,baz)
+        zen = np.vstack((stz[idx].data,ste[idx].data,stn[idx].data))
+        lqt = np.dot(R,zen)
+        #zen = [stz[idx].data,ste[idx].data,stn[idx].data]
+        #lqt = R*zen
+        stl[idx].data = np.array(lqt[0])[0,:]
+        stq[idx].data = np.array(lqt[1])[0,:]
+        stt[idx].data = np.array(lqt[2])[0,:]
 
     return stl,stq,stt
 
@@ -147,17 +145,19 @@ def roll(st,seconds):
         tr.data = np.roll(tr.data,shift)
     return st
 
-def phase_window(tr,phases,window_tuple):
+def phase_window(tr,phase,**kwargs):
     '''
     return window around PKIKP phase
     '''
+    window_tuple = kwargs.get('window',(-10,10))
+
     tr.stats.distance = tr.stats.sac['gcarc']
     origin_time = tr.stats.sac['o']
     start = tr.stats.starttime
+
     time = model.get_travel_times(source_depth_in_km = tr.stats.sac['evdp'],
                                        distance_in_degree = tr.stats.sac['gcarc'],
-                                       phase_list = phases)
-
+                                       phase_list = phase)
     t = time[0].time+origin_time
     PKPPKP_tr = tr.slice(start+t+window_tuple[0],start+t+window_tuple[1])
     return PKPPKP_tr

@@ -127,10 +127,10 @@ def axisem_stations(st,name='STATIONS'):
     st.sort(['location'])
 
     f = open(name,'w')
-    for idx,tr in enumerate(st[:-1]):
-        if tr.stats.station+tr.stats.network == \
-            st[idx+1].stats.station+st[idx].stats.network:
-            continue
+    for idx,tr in enumerate(st):
+        #if tr.stats.station+tr.stats.network == \
+        #    st[idx+1].stats.station+st[idx].stats.network:
+        #    continue
         f.write('{}   {}   {}   {}   {}   {}   {}   {}\n'.format(
         tr.stats.station,
         tr.stats.network,
