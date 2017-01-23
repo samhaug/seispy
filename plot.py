@@ -896,6 +896,8 @@ def simple_section(st,**kwargs):
                     phase_list = a_list)
                 P_time = P[0].time
                 plot(tr,-1*(P_time+tr.stats.sac['o']),ax)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Epicentral Distance (deg)')
     plt.show()
 
 def section(st,**kwargs):

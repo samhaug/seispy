@@ -143,7 +143,9 @@ def roll(st,seconds):
         tr.data = np.roll(tr.data,shift)
     return st
 
+###############################################################################
 def phase_window(tr,phase,**kwargs):
+###############################################################################
     '''
     return window around PKIKP phase
     '''
@@ -266,7 +268,7 @@ def normalize_on_phase(st,**kwargs):
     window_tuple = kwargs.get('window_tuple',(-10,10))
 
     for tr in st:
-        window = phase_window(tr,phase,window_tuple=window_tuple)
+        window = phase_window(tr,phase,window=window_tuple)
         tr.data = tr.data/np.abs(window.data).max()
     return st
 
@@ -278,7 +280,7 @@ def normalize_on_phase_range(st,**kwargs):
     window_tuple = kwargs.get('window_tuple',(-100,100))
 
     for tr in st:
-        window = phase_window(tr,phase,window_tuple)
+        window = phase_window(tr,phase,window=window_tuple)
         tr.data = tr.data/np.mean(np.abs(window.data))
     return st
 
