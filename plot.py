@@ -494,7 +494,7 @@ def vespagram(st_in,**kwargs):
 
     st = obspy.core.Stream()
     for idx, tr in enumerate(st_in):
-        st += phase_window(tr,window_phase,window_tuple)
+        st += phase_window(tr,window_phase,window=window_tuple)
 
     def mean_range(st):
         a = []
@@ -1030,24 +1030,24 @@ def section(st,**kwargs):
         name = trace_tuple[3]
         az = trace_tuple[4]
         if color == True and picker == True:
-            ax.plot(time,data+dist,alpha=0.5,lw=1,picker=5,label=name)
+            ax.plot(time,data+dist,alpha=0.4,lw=1,picker=5,label=name)
         if color == True and picker != True:
-            ax.plot(time,data+dist,alpha=0.5,lw=1)
+            ax.plot(time,data+dist,alpha=0.4,lw=1)
         if color != True and picker == True:
-            ax.plot(time,data+dist,alpha=0.5,lw=1,picker=5,label=name)
+            ax.plot(time,data+dist,alpha=0.4,lw=1,picker=5,label=name)
         if color != True and picker != True:
             if az_color != False:
                 if az_color > az:
-                    ax.plot(time,data+dist,alpha=0.5,lw=1,c='k')
+                    ax.plot(time,data+dist,alpha=0.4,lw=1,c='k')
                 if az_color < az:
-                    ax.plot(time,data+dist,alpha=0.5,lw=1,c='darkgreen')
+                    ax.plot(time,data+dist,alpha=0.4,lw=1,c='darkgreen')
             else:
-                ax.plot(time,data+dist,alpha=0.5,lw=1,c='k')
+                ax.plot(time,data+dist,alpha=0.4,lw=1,c='k')
         if fill:
             ax.fill_between(time, dist, data+dist, where=data+dist <= dist,
-                            facecolor='r', alpha=0.5, interpolate=True)
+                            facecolor='r', alpha=0.4, interpolate=True)
             ax.fill_between(time, dist, data+dist, where=data+dist >= dist,
-                            facecolor='g', alpha=0.5, interpolate=True)
+                            facecolor='g', alpha=0.4, interpolate=True)
 
     def p_list_maker(st):
         p_list = []
@@ -1288,12 +1288,12 @@ def stack_amp(st,**kwargs):
     #    return section
 
     return section
+    '''
     if ax_grab == False:
         fig, ax = plt.subplots(figsize=(10,5))
     else:
         ax = ax_grab
 
-    '''
     time = np.linspace(x_lim[0],x_lim[1],num=section.shape[0])
     ax.plot(time,section,color='k')
     ax.grid()

@@ -42,7 +42,6 @@ def rotate_phase(stz,stn,ste,phase):
     d = [stz_list,ste_list,stn_list]
     'Find common stations in array'
     common = list(reduce(set.intersection, [set(item) for item in d ]))
-    print len(common)
 
     stz_list = []
     ste_list = []
@@ -74,7 +73,6 @@ def rotate_phase(stz,stn,ste,phase):
     stq = stz.copy()
     stt = stz.copy()
 
-    print len(stz),len(ste),len(stn)
     for idx,tr in enumerate(stz):
 
         baz = np.radians(obspy.geodetics.base.gps2dist_azimuth(
