@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 import obspy.signal.filter
 import obspy.signal
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem_50")
+model = TauPyModel(model="prem50")
 from matplotlib import colors, ticker, cm
 from matplotlib.patches import Polygon
 from matplotlib.colors import LogNorm
@@ -1005,7 +1005,7 @@ def section(st,**kwargs):
                    phase_list = phases)
         P_slow = P[0].ray_param_sec_degree
         P_time = P[0].time
-        ax.axvline(0,c='b',alpha=0.2,lw=9.0)
+        ax.axvline(0,c='b',alpha=0.7,lw=9.0)
         if len(arrivals) != 0:
             colors = ['b','r','g','b','r','g','b','r','g','b']
             name_list = []
@@ -1020,7 +1020,7 @@ def section(st,**kwargs):
                     time = ii.time-P_time
                     x = np.linspace(time-500,time+500)
                     y = (1/p)*(x-time)+ref_degree
-                    ax.plot(x,y,alpha=0.2,label=ii.purist_name,lw=9.0)
+                    ax.plot(x,y,alpha=0.7,label=ii.purist_name,lw=9.0)
             ax.legend()
 
     def add_to_axes(trace_tuple,ax):
@@ -1030,24 +1030,24 @@ def section(st,**kwargs):
         name = trace_tuple[3]
         az = trace_tuple[4]
         if color == True and picker == True:
-            ax.plot(time,data+dist,alpha=0.4,lw=1,picker=5,label=name)
+            ax.plot(time,data+dist,alpha=0.7,lw=0.5,picker=5,label=name)
         if color == True and picker != True:
-            ax.plot(time,data+dist,alpha=0.4,lw=1)
+            ax.plot(time,data+dist,alpha=0.7,lw=0.5)
         if color != True and picker == True:
-            ax.plot(time,data+dist,alpha=0.4,lw=1,picker=5,label=name)
+            ax.plot(time,data+dist,alpha=0.7,lw=0.5,picker=5,label=name)
         if color != True and picker != True:
             if az_color != False:
                 if az_color > az:
-                    ax.plot(time,data+dist,alpha=0.4,lw=1,c='k')
+                    ax.plot(time,data+dist,alpha=0.7,lw=0.5,c='k')
                 if az_color < az:
-                    ax.plot(time,data+dist,alpha=0.4,lw=1,c='darkgreen')
+                    ax.plot(time,data+dist,alpha=0.7,lw=0.5,c='darkgreen')
             else:
-                ax.plot(time,data+dist,alpha=0.4,lw=1,c='k')
+                ax.plot(time,data+dist,alpha=0.7,lw=1,c='k')
         if fill:
             ax.fill_between(time, dist, data+dist, where=data+dist <= dist,
-                            facecolor='r', alpha=0.4, interpolate=True)
+                            facecolor='r', alpha=0.7, interpolate=True)
             ax.fill_between(time, dist, data+dist, where=data+dist >= dist,
-                            facecolor='g', alpha=0.4, interpolate=True)
+                            facecolor='g', alpha=0.7, interpolate=True)
 
     def p_list_maker(st):
         p_list = []
@@ -1226,7 +1226,7 @@ def stack_amp(st,**kwargs):
     slope = kwargs.get('slope',197)
     y_int = kwargs.get('y_int',73)
     ax_grab = kwargs.get('ax_grab',False)
-    x_lim = kwargs.get('x_lim',(-10,120))
+    x_lim = kwargs.get('x_lim',(-10,160))
     p_tick= kwargs.get('p_tick',-0.05)
     p_lim = kwargs.get('p_lim',(-3.0,3.0))
     return_tr = kwargs.get('return_tr',False)

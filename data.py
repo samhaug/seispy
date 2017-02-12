@@ -13,7 +13,7 @@ import seispy.convert
 
 def rotate_phase(stz,stn,ste,phase):
     '''
-    Rotate a three component trace in zne to coordinate system for specific 
+    Rotate a three component trace in zne to coordinate system for specific
     phase.
     do not normalize or process the array in any way.
     '''
@@ -169,7 +169,9 @@ def align_on_phase(st, **kwargs):
     '''
     phase = kwargs.get('phase',['P'])
     a_min = kwargs.get('min',True)
-    window_tuple = kwargs.get('window_tuple',(-10,10))
+    window_tuple = kwargs.get('window',(-30,30))
+    alt_model = kwargs.get('model',False)
+
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)
@@ -180,6 +182,15 @@ def align_on_phase(st, **kwargs):
         return array
 
     for tr in st:
+
+        #if alt_model != False:
+        #    print('using alternative model')
+        #    model = TauPyModel(model=alt_model)
+        #    arrivals = model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
+        #                 source_depth_in_km=tr.stats.sac['evdp'],
+        #                 phase_list = phase)
+        #else:
+
         arrivals = model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
                          source_depth_in_km=tr.stats.sac['evdp'],
                          phase_list = phase)
@@ -280,6 +291,22 @@ def normalize_on_phase_range(st,**kwargs):
     for tr in st:
         window = phase_window(tr,phase,window=window_tuple)
         tr.data = tr.data/np.mean(np.abs(window.data))
+    return st
+
+###############################################################################
+def normalize_on_envelope(st,**kwargs):
+###############################################################################
+
+    phase = kwargs.get('phase',['S'])
+    window_tuple = kwargs.get('window_tuple',(-100,100))
+
+    env_st = st.copy()
+
+    for idx,tr in enumerate(st):
+       env_st[idx].data = obspy.signal.filter.envelope(tr.data)
+       window = phase_window(env_st[idx],phase,window=window_tuple)
+       tr.data *= 1./np.max(window.data)
+
     return st
 
 ###############################################################################
