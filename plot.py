@@ -830,7 +830,8 @@ def compare_section(std,sts,**kwargs):
     fig = kwargs.get('fig',None)
     ax = kwargs.get('ax',None)
 
-    fig,ax = plt.subplots(figsize=(10,15))
+    if fig == None and ax == None:
+        fig,ax = plt.subplots(figsize=(10,15))
 
     for ii in range(0,len(std)):
         try:
@@ -854,11 +855,12 @@ def compare_section(std,sts,**kwargs):
             t_dat = np.linspace(ds-t0,ds-t0+dpts*ddelt,num=dpts)
             t_syn = np.linspace(ss-t0,ss-t0+spts*sdelt,num=spts)
             ax.plot(t_dat-P_time,std[ii].data+std[ii].stats.sac['gcarc'],alpha=0.5,color='k')
-            ax.plot(t_syn-P_time,sts[ii].data+sts[ii].stats.sac['gcarc'],alpha=0.5,color='r')
+            ax.plot(t_syn-P_time,sts[ii].data+sts[ii].stats.sac['gcarc'],alpha=0.5,color='r',label='sim')
         except IndexError:
             plt.show()
 
-    plt.show()
+    if fig == None and ax == None:
+        plt.show()
 
 def simple_section(st,**kwargs):
     '''

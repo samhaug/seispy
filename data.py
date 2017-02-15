@@ -170,8 +170,9 @@ def align_on_phase(st, **kwargs):
     phase = kwargs.get('phase',['P'])
     a_min = kwargs.get('min',True)
     window_tuple = kwargs.get('window',(-30,30))
-    alt_model = kwargs.get('model',False)
+    in_model = kwargs.get('model','prem50')
 
+    model = TauPyModel(model=in_model)
     def roll_zero(array,n):
         if n < 0:
             array = np.roll(array,n)
@@ -182,14 +183,6 @@ def align_on_phase(st, **kwargs):
         return array
 
     for tr in st:
-
-        #if alt_model != False:
-        #    print('using alternative model')
-        #    model = TauPyModel(model=alt_model)
-        #    arrivals = model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
-        #                 source_depth_in_km=tr.stats.sac['evdp'],
-        #                 phase_list = phase)
-        #else:
 
         arrivals = model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
                          source_depth_in_km=tr.stats.sac['evdp'],
