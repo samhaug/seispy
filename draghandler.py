@@ -1,6 +1,7 @@
 #!/home/samhaug/anaconda2/bin/python
 
 from matplotlib import pylab as p
+import numpy as np
 class DragHandler(object):
     """ A simple class to handle Drag n Drop.
 
