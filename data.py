@@ -159,6 +159,7 @@ def phase_window(tr,phase,**kwargs):
                                        phase_list = phase)
     t = time[0].time+origin_time
     PKPPKP_tr = tr.slice(start+t+window_tuple[0],start+t+window_tuple[1])
+    PKPPKP_tr.stats.sac['o'] += -1*t
     return PKPPKP_tr
 
 ###############################################################################
