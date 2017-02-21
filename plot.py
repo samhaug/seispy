@@ -674,10 +674,11 @@ def plot(tr,**kwargs):
     '''
     phases = kwargs.get('phase_list',False)
     window = kwargs.get('window',False)
+    t_model = kwargs.get('model',model)
 
     fig, ax = plt.subplots(figsize=(23,9))
     if phases != False:
-        arrivals = model.get_travel_times(
+        arrivals = t_model.get_travel_times(
                    distance_in_degree=tr.stats.sac['gcarc'],
                    source_depth_in_km=tr.stats.sac['evdp'],
                    phase_list = phases)
@@ -685,7 +686,7 @@ def plot(tr,**kwargs):
         colors = ['b','g','r','c','m','y','k']
         if len(arrivals) != 0:
             for idx, ii in enumerate(arrivals):
-                ax.axvline(ii.time,label=ii.name,c=colors[idx])
+                ax.axvline(ii.time,label=ii.name,c=np.random.rand(3,1))
                 window_list.append(ii.time)
     ax.legend()
 
