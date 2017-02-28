@@ -686,7 +686,7 @@ def plot(tr,**kwargs):
         colors = ['b','g','r','c','m','y','k']
         if len(arrivals) != 0:
             for idx, ii in enumerate(arrivals):
-                ax.axvline(ii.time,label=ii.name,c=np.random.rand(3,1))
+                ax.axvline(ii.time,label=ii.purist_name,c=np.random.rand(3,1))
                 window_list.append(ii.time)
     ax.legend()
 

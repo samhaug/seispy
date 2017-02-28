@@ -149,7 +149,9 @@ def phase_window(tr,phase,**kwargs):
     '''
     tr = tr.copy()
     window_tuple = kwargs.get('window',(-10,10))
+    in_model = kwargs.get('model','prem50')
 
+    model = TauPyModel(model=in_model)
     tr.stats.distance = tr.stats.sac['gcarc']
     origin_time = tr.stats.sac['o']
     start = tr.stats.starttime
@@ -205,6 +207,37 @@ def align_on_phase(st, **kwargs):
             tr.data = np.roll(tr.data,(1*shift))
 
     return st
+
+def phase_align(st,**kwargs):
+    phase = kwargs.get('phase',['P'])
+    pol = kwargs.get('pol','min')
+    window = kwargs.get('window',(-30,30))
+    in_model = kwargs.get('model',model)
+
+    for tr in st:
+
+        arrivals = in_model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
+                         source_depth_in_km=tr.stats.sac['evdp'],
+                         phase_list = phase)
+        P = arrivals[0]
+        t = tr.stats.starttime
+        o = tr.stats.sac['o']
+        sr = tr.stats.sampling_rate
+
+        if pol == 'min':
+            sl = tr.slice(t+P.time+o+window[0],t+P.time+o+window[1]).data
+            mi = np.argmin(sl)
+        if pol == 'max':
+            sl = tr.slice(t+P.time+o+window[0],t+P.time+o+window[1]).data
+            mi = np.argmax(sl)
+
+        shift = int(len(sl)/2.)-mi
+        s_shift = shift/sr
+        o *= -1*shift
+    return st
+
+
+
 
 ###############################################################################
 def align_on_correlation(st, **kwargs):
