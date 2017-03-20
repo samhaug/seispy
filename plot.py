@@ -871,6 +871,7 @@ def simple_section(st,**kwargs):
     fig = kwargs.get('fig',None)
     ax = kwargs.get('ax',None)
     color = kwargs.get('color','k')
+    save = kwargs.get('save',False)
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(10,15))
@@ -901,7 +902,11 @@ def simple_section(st,**kwargs):
                 plot(tr,-1*(P_time+tr.stats.sac['o']),ax)
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Epicentral Distance (deg)')
-    plt.show()
+    ax.set_title(st[0].stats.network)
+    if save == False:
+        plt.show()
+    else:
+        plt.savefig(save)
 
 def section(st,**kwargs):
     '''

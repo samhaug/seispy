@@ -110,7 +110,6 @@ def roll_zero(array,n):
     return array
 
 def clip_traces(st_in):
-
     st = st_in.copy()
     st_out = obspy.core.Stream()
     depth = st[0].stats.sac['evdp']
@@ -141,9 +140,7 @@ def roll(st,seconds):
         tr.data = np.roll(tr.data,shift)
     return st
 
-###############################################################################
 def phase_window(tr,phase,**kwargs):
-###############################################################################
     '''
     return window around PKIKP phase
     '''
@@ -151,7 +148,11 @@ def phase_window(tr,phase,**kwargs):
     window_tuple = kwargs.get('window',(-10,10))
     in_model = kwargs.get('model','prem50')
 
-    model = TauPyModel(model=in_model)
+    if type(in_model) == str:
+        model = TauPyModel(model=in_model)
+    else:
+        model = in_model
+
     tr.stats.distance = tr.stats.sac['gcarc']
     origin_time = tr.stats.sac['o']
     start = tr.stats.starttime
@@ -161,12 +162,50 @@ def phase_window(tr,phase,**kwargs):
                                        phase_list = phase)
     t = time[0].time+origin_time
     PKPPKP_tr = tr.slice(start+t+window_tuple[0],start+t+window_tuple[1])
-    PKPPKP_tr.stats.sac['o'] += -1*t
+    #PKPPKP_tr.stats.sac['o'] += -1*window_tuple[0]
     return PKPPKP_tr
 
-###############################################################################
+def tr_align_on_phase(tr, **kwargs):
+    '''
+    Use to precisely align seismogram on phase
+    '''
+    phase = kwargs.get('phase',['P'])
+    a_min = kwargs.get('min',True)
+    window_tuple = kwargs.get('window',(-20,20))
+    in_model = kwargs.get('model','prem50')
+
+    model = TauPyModel(model=in_model)
+    def roll_zero(array,n):
+        if n < 0:
+            array = np.roll(array,n)
+            array[n::] = 0
+        else:
+            array = np.roll(array,n)
+            array[0:n] = 0
+        return array
+
+    arrivals = model.get_travel_times(distance_in_degree=tr.stats.sac['gcarc'],
+                     source_depth_in_km=tr.stats.sac['evdp'],
+                     phase_list = phase)
+    P = arrivals[0]
+    t = tr.stats.starttime
+    o = tr.stats.sac['o']
+    window_data = (tr.slice(t+P.time+window_tuple[0]+o,
+                    t+P.time+window_tuple[1]+o).data)
+    if a_min:
+        min_P = window_data.min()
+        imin = np.argmin(np.abs(min_P-window_data))
+        shift = int(len(window_data)/2.)-imin
+        tr.data = np.roll(tr.data,(1*shift))
+    else:
+        max_P = window_data.max()
+        imax = np.argmin(np.abs(max_P-window_data))
+        shift = int(len(window_data)/2.)-imax
+        tr.data = np.roll(tr.data,(1*shift))
+
+    return tr
+
 def align_on_phase(st, **kwargs):
-###############################################################################
     '''
     Use to precisely align seismogram on phase
     '''
@@ -236,12 +275,7 @@ def phase_align(st,**kwargs):
         o *= -1*shift
     return st
 
-
-
-
-###############################################################################
 def align_on_correlation(st, **kwargs):
-###############################################################################
     '''
     Use to precisely align seismogram on phase
     '''
@@ -279,24 +313,7 @@ def align_on_correlation(st, **kwargs):
         tr.data = np.roll(tr.data,roll)
     return st
 
-
-    #    if polarization == min:
-    #        imin = argrelextrema(window_data,np.less)[0][0]
-    #        shift = int(len(window_data)/2.)-imin
-    #        tr.data = np.roll(tr.data,(1*shift))
-    #    elif polarization == max:
-    #        imax = argrelextrema(window_data,np.greater)[0][0]
-    #        shift = int(len(window_data)/2.)-imax
-    #        tr.data = np.roll(tr.data,(1*shift))
-    #    else:
-    #        print('polarization must be min or max')
-    #        break
-#
-#    return st
-
-###############################################################################
 def normalize_on_phase(st,**kwargs):
-###############################################################################
     '''
     normalize traces in stream based on maximum value in phase window
     '''
@@ -308,10 +325,18 @@ def normalize_on_phase(st,**kwargs):
         tr.data = tr.data/np.abs(window.data).max()
     return st
 
-###############################################################################
-def normalize_on_phase_range(st,**kwargs):
-###############################################################################
+def trace_normalize_on_phase(tr,**kwargs):
+    '''
+    normalize traces in stream based on maximum value in phase window
+    '''
+    phase = kwargs.get('phase',['P'])
+    window_tuple = kwargs.get('window_tuple',(-10,10))
 
+    window = phase_window(tr,phase,window=window_tuple)
+    tr.data = tr.data/np.abs(window.data).max()
+    return tr
+
+def normalize_on_phase_range(st,**kwargs):
     phase = kwargs.get('phase',['P'])
     window_tuple = kwargs.get('window_tuple',(-100,100))
 
@@ -320,10 +345,7 @@ def normalize_on_phase_range(st,**kwargs):
         tr.data = tr.data/np.mean(np.abs(window.data))
     return st
 
-###############################################################################
 def normalize_on_envelope(st,**kwargs):
-###############################################################################
-
     phase = kwargs.get('phase',['S'])
     window_tuple = kwargs.get('window_tuple',(-100,100))
 
@@ -336,9 +358,7 @@ def normalize_on_envelope(st,**kwargs):
 
     return st
 
-###############################################################################
 def periodic_corr(data, deconvolution):
-###############################################################################
     '''
     Periodic correlation, implemented using the FFT.
     data and deconvolution must be real sequences with the same length.
@@ -351,9 +371,7 @@ def periodic_corr(data, deconvolution):
     shift = np.where(corr == corr.max())[0][0]
     return shift
 
-###############################################################################
 def waterlevel_deconvolve(tr):
-###############################################################################
     '''
     Water_level_deconvolve trace
     Sssume seismic wavelet is the P phase.
@@ -477,14 +495,13 @@ def slant(st_in,slowness):
     return st
 
 def pkp_precursor_polyfit(precursor_env):
-
-   x = np.linspace(0,1,num=precursor_env.shape[1])
-   p_list=[]
-   for ii in precursor_env:
+    x = np.linspace(0,1,num=precursor_env.shape[1])
+    p_list=[]
+    for ii in precursor_env:
        p = np.polyfit(x,ii,3)
        p_list.append(p)
 
-   for jdx,jj in enumerate(p_list):
+ .  for jdx,jj in enumerate(p_list):
        p = np.poly1d(jj)
        plt.plot(x,jdx+precursor_env[jdx],color='k')
        plt.plot(x,jdx+p(x),color='r')
