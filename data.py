@@ -494,20 +494,3 @@ def slant(st_in,slowness):
         tr.data = roll_zero(tr.data,int(slowness*dist*samp_rate))
     return st
 
-def pkp_precursor_polyfit(precursor_env):
-    x = np.linspace(0,1,num=precursor_env.shape[1])
-    p_list=[]
-    for ii in precursor_env:
-       p = np.polyfit(x,ii,3)
-       p_list.append(p)
-
- .  for jdx,jj in enumerate(p_list):
-       p = np.poly1d(jj)
-       plt.plot(x,jdx+precursor_env[jdx],color='k')
-       plt.plot(x,jdx+p(x),color='r')
-   plt.show()
-
-   return p_list
-
-
-
