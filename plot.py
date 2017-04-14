@@ -135,7 +135,6 @@ def plot_hetero(scatter_file):
     plt.show()
 
 def compare_precursor_PKIKP(**kwargs):
-
     time_window = kwargs.get('time',(-35,3))
     arrangement = kwargs.get('arrangement','homogeneity')
     env_list = kwargs.get('env_list',False)
@@ -220,8 +219,6 @@ def stack_precursor_PKIKP(st_list_in,**kwargs):
     plt.show()
 
 def new_precursor_PKIKP(st_in,**kwargs):
-
-
     second = kwargs.get('second',True)
     time_window = kwargs.get('time',(-35,20))
     range_window = kwargs.get('range',(130,140))
@@ -827,6 +824,7 @@ def compare_section(std,sts,**kwargs):
     '''
     compare two streams, std is data and sts is synthetic
     '''
+    print('black is first, red is second')
     a_list = kwargs.get('a_list',True)
     fig = kwargs.get('fig',None)
     ax = kwargs.get('ax',None)
@@ -872,6 +870,7 @@ def simple_section(st,**kwargs):
     ax = kwargs.get('ax',None)
     color = kwargs.get('color','k')
     save = kwargs.get('save',False)
+    picker = kwargs.get('picker',False)
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(10,15))
@@ -881,7 +880,9 @@ def simple_section(st,**kwargs):
     def plot(tr,o,ax):
         e = tr.stats.npts/tr.stats.sampling_rate
         t = np.linspace(o,o+e,num=tr.stats.npts)
-        ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,color=color)
+        ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
+                color=color,label=tr.stats.network+'.'+tr.stats.station,
+                picker=10)
 
     if a_list == True:
         for tr in st:
@@ -903,6 +904,21 @@ def simple_section(st,**kwargs):
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Epicentral Distance (deg)')
     ax.set_title(st[0].stats.network)
+
+    if picker == True:
+        remove_list = []
+        def on_pick(event):
+            artist = event.artist
+            artist.set_c('white')
+            artist.set_alpha(0.0)
+            remove_list.append(artist.get_label())
+            fig.canvas.draw()
+        fig.canvas.mpl_connect('pick_event', on_pick)
+        plt.show()
+        for tr in st:
+            if tr.stats.network+'.'+tr.stats.station in remove_list:
+                st.remove(tr)
+
     if save == False:
         plt.show()
     else:
@@ -1182,7 +1198,6 @@ def express_plot(st, **kwargs):
     mapplot.source_reciever_plot(st,save=fig_dir+name)
     st.write(fig_dir+name+'/'+name+'.SAC',format='SAC')
 
-
 def new_stack_amp(st,**kwargs):
     '''
     stack amplitude of vespagram along slope
@@ -1367,9 +1382,7 @@ def slowness_stack(st,slowness):
     plt.show()
     return stack
 
-
 def pick_traces(st):
-
     remove_list = []
 
     fig,ax = plt.subplots()

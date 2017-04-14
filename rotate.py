@@ -23,6 +23,20 @@ def make_dict(st_1, st_2, **kwargs):
 
     return dict_1, dict_2
 
+def rotate_ne_rt(stn,ste):
+    str = stn.copy()
+    stt = stn.copy()
+    for idx,tr in enumerate(stn):
+        n = stn[idx].data
+        e = ste[idx].data
+        ne = np.vstack((n,e))
+        rot = np.array([[np.cos(np.radians(tr.stats.sac['az'])),np.sin(np.radians(tr.stats.sac['az']))],
+                        [-1*np.sin(np.radians(tr.stats.sac['az'])),np.cos(np.radians(tr.stats.sac['az']))]])
+        rt = np.dot(rot,ne)
+        str[idx].data = rt[0,:]
+        stt[idx].data = rt[1,:]
+    return str,stt
+
 def rotate_tr(tr_n, tr_e, **kwargs):
     '''
     Rotate trace from NE to RT coordinates
@@ -266,7 +280,6 @@ def beamform_LQ(trl,trq,baz):
     q_data = rotated[0,:]
     l_data = rotated[1,:]
     return l_data,q_data
-
 
 def express_LQT():
     '''
