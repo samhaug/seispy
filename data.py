@@ -6,7 +6,7 @@ import numpy as np
 from obspy.taup import TauPyModel
 from matplotlib import pyplot as plt
 from scipy.signal import argrelextrema
-model = TauPyModel(model="prem50")
+model = TauPyModel(model="prem")
 import itertools
 import seispy.convert
 
@@ -212,7 +212,7 @@ def align_on_phase(st, **kwargs):
     phase = kwargs.get('phase',['P'])
     a_min = kwargs.get('min',True)
     window_tuple = kwargs.get('window',(-30,30))
-    in_model = kwargs.get('model','prem50')
+    in_model = kwargs.get('model','prem')
 
     model = TauPyModel(model=in_model)
     def roll_zero(array,n):

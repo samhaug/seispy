@@ -19,9 +19,16 @@ cmt = h5py.File('/home/samhaug/Utils/CMT_catalog/cmt.h5','r')
 
 
 def plot(st):
-
     width = 28000000
-    fig = plt.figure(figsize=(10,10))
+    latav = []
+    lonav = []
+    for tr in st:
+        latav.append(tr.stats.sac['stla'])
+        lonav.append(tr.stats.sac['stlo'])
+    latav = np.mean(latav)
+    lonav = np.mean(lonav)
+
+    fig1 = plt.figure(figsize=(10,10))
     lat_0 = st[0].stats.sac['evla']
     lon_0 = st[0].stats.sac['evlo']
     m = Basemap(projection='ortho',lat_0=lat_0,lon_0=lon_0)
@@ -41,6 +48,26 @@ def plot(st):
         lon_0 = tr.stats.sac['stlo']
         xpt, ypt = m(lon_0, lat_0)
         m.scatter(xpt,ypt,s=5,c='green',marker='o',lw=0)
+
+    fig2 = plt.figure(figsize=(10,10))
+    m = Basemap(projection='ortho',lat_0=latav,lon_0=lonav)
+    xpt, ypt = m(st[0].stats.sac['evlo'], st[0].stats.sac['evla'])
+    m.scatter(xpt,ypt,s=99,c='red',marker='o',lw=1)
+    # fill background.
+    #m.drawmapboundary(fill_color='aqua')
+    # draw coasts and fill continents.
+    m.drawcoastlines(linewidth=0.5)
+    #m.fillcontinents(color='coral',lake_color='aqua')
+    # 20 degree graticule.
+    m.drawparallels(np.arange(-80,81,20))
+    m.drawmeridians(np.arange(-180,180,20))
+    # draw a black dot at the center.
+    for tr in st:
+        lat_0 = tr.stats.sac['stla']
+        lon_0 = tr.stats.sac['stlo']
+        xpt, ypt = m(lon_0, lat_0)
+        m.scatter(xpt,ypt,s=5,c='green',marker='o',lw=0)
+
     plt.show()
 
 def beachball(tr, **kwargs):

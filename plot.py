@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 import obspy.signal.filter
 import obspy.signal
 from obspy.taup import TauPyModel
-model = TauPyModel(model="prem50")
+model = TauPyModel(model="prem")
 from matplotlib import colors, ticker, cm
 from matplotlib.patches import Polygon
 from matplotlib.colors import LogNorm
@@ -861,7 +861,7 @@ def compare_section(std,sts,**kwargs):
     if fig == None and ax == None:
         plt.show()
 
-def simple_section(st,**kwargs):
+def reduction_simple_section(st,r,**kwargs):
     '''
     Simpler section plotter for obspy stream object
     '''
@@ -880,9 +880,215 @@ def simple_section(st,**kwargs):
     def plot(tr,o,ax):
         e = tr.stats.npts/tr.stats.sampling_rate
         t = np.linspace(o,o+e,num=tr.stats.npts)
+        t = t-(tr.stats.sac['gcarc']*111.195)/r
         ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
                 color=color,label=tr.stats.network+'.'+tr.stats.station,
                 picker=10)
+
+    if a_list == True:
+        for tr in st:
+            plot(tr,0,ax)
+
+    elif type(a_list) == list:
+        if len(a_list) != 1:
+            print('Must have phase identifier string of len = 1')
+            return
+        else:
+            for tr in st:
+                evdp = tr.stats.sac['evdp']
+                gcarc = tr.stats.sac['gcarc']
+                P = model.get_travel_times(distance_in_degree=gcarc,
+                    source_depth_in_km=evdp,
+                    phase_list = a_list)
+                P_time = P[0].time
+                plot(tr,-1*(P_time+tr.stats.sac['o']),ax)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Epicentral Distance (deg)')
+    ax.set_title(st[0].stats.network)
+
+    if picker == True:
+        remove_list = []
+        def on_pick(event):
+            artist = event.artist
+            artist.set_c('white')
+            artist.set_alpha(0.0)
+            remove_list.append(artist.get_label())
+            fig.canvas.draw()
+        fig.canvas.mpl_connect('pick_event', on_pick)
+        plt.show()
+        for tr in st:
+            if tr.stats.network+'.'+tr.stats.station in remove_list:
+                st.remove(tr)
+
+    if save == False:
+        plt.show()
+    else:
+        plt.savefig(save)
+
+def simple_section(st,**kwargs):
+    '''
+    Simpler section plotter for obspy stream object
+    '''
+    a_list = kwargs.get('a_list',True)
+    fig = kwargs.get('fig',None)
+    ax = kwargs.get('ax',None)
+    color = kwargs.get('color','k')
+    save = kwargs.get('save',False)
+    picker = kwargs.get('picker',False)
+    rainbow = kwargs.get('rainbow',False)
+
+    if fig == None and ax == None:
+        fig,ax = plt.subplots(figsize=(10,15))
+    else:
+        print('using outside figure')
+
+    def plot(tr,o,ax,color):
+        e = tr.stats.npts/tr.stats.sampling_rate
+        t = np.linspace(o,o+e,num=tr.stats.npts)
+        ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
+                color=color,label=tr.stats.network+'.'+tr.stats.station,
+                picker=10)
+    def randcolor():
+        c_list = ['red','blue','cyan','green','orange','pink','purple','magenta',
+                  'limegreen','goldenrod','black']
+        return c_list[np.random.randint(len(c_list))]
+
+    if a_list == True:
+        for tr in st:
+            if rainbow == True:
+                plot(tr,0,ax,randcolor())
+            else:
+                plot(tr,0,ax,color)
+
+    elif type(a_list) == list:
+        if len(a_list) != 1:
+            print('Must have phase identifier string of len = 1')
+            return
+        else:
+            for tr in st:
+                evdp = tr.stats.sac['evdp']
+                gcarc = tr.stats.sac['gcarc']
+                P = model.get_travel_times(distance_in_degree=gcarc,
+                    source_depth_in_km=evdp,
+                    phase_list = a_list)
+                P_time = P[0].time
+                if rainbow == True:
+                    plot(tr,-1*(P_time+tr.stats.sac['o']),ax,randcolor())
+                else:
+                    plot(tr,-1*(P_time+tr.stats.sac['o']),ax,color)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Epicentral Distance (deg)')
+    ax.set_title(st[0].stats.network)
+
+    if picker == True:
+        remove_list = []
+        def on_pick(event):
+            artist = event.artist
+            artist.set_c('white')
+            artist.set_alpha(0.0)
+            remove_list.append(artist.get_label())
+            fig.canvas.draw()
+        fig.canvas.mpl_connect('pick_event', on_pick)
+        plt.show()
+        for tr in st:
+            if tr.stats.network+'.'+tr.stats.station in remove_list:
+                st.remove(tr)
+
+    if save == False:
+        plt.show()
+    else:
+        plt.savefig(save)
+
+def az_simple_section(st,**kwargs):
+    '''
+    Simpler section plotter for obspy stream object
+    '''
+    a_list = kwargs.get('a_list',True)
+    fig = kwargs.get('fig',None)
+    ax = kwargs.get('ax',None)
+    color = kwargs.get('color','k')
+    save = kwargs.get('save',False)
+    picker = kwargs.get('picker',False)
+
+    if fig == None and ax == None:
+        fig,ax = plt.subplots(figsize=(10,15))
+    else:
+        print('using outside figure')
+
+    def plot(tr,o,ax):
+        e = tr.stats.npts/tr.stats.sampling_rate
+        t = np.linspace(o,o+e,num=tr.stats.npts)
+        ax.plot(t,tr.data+tr.stats.sac['az'],alpha=0.5,
+                color=color,label=tr.stats.network+'.'+tr.stats.station,
+                picker=10)
+
+    if a_list == True:
+        for tr in st:
+            plot(tr,0,ax)
+
+    elif type(a_list) == list:
+        if len(a_list) != 1:
+            print('Must have phase identifier string of len = 1')
+            return
+        else:
+            for tr in st:
+                evdp = tr.stats.sac['evdp']
+                gcarc = tr.stats.sac['gcarc']
+                P = model.get_travel_times(distance_in_degree=gcarc,
+                    source_depth_in_km=evdp,
+                    phase_list = a_list)
+                P_time = P[0].time
+                plot(tr,-1*(P_time+tr.stats.sac['o']),ax)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Azimuth (deg)')
+    ax.set_title(st[0].stats.network)
+
+    if picker == True:
+        remove_list = []
+        def on_pick(event):
+            artist = event.artist
+            artist.set_c('white')
+            artist.set_alpha(0.0)
+            remove_list.append(artist.get_label())
+            fig.canvas.draw()
+        fig.canvas.mpl_connect('pick_event', on_pick)
+        plt.show()
+        for tr in st:
+            if tr.stats.network+'.'+tr.stats.station in remove_list:
+                st.remove(tr)
+
+    if save == False:
+        plt.tight_layout()
+        plt.show()
+    else:
+        plt.tight_layout()
+        plt.savefig(save)
+
+def grad_simple_section(st,angle,**kwargs):
+    '''
+    Simpler section plotter for obspy stream object
+    '''
+    a_list = kwargs.get('a_list',True)
+    fig = kwargs.get('fig',None)
+    ax = kwargs.get('ax',None)
+    color = kwargs.get('color','k')
+    save = kwargs.get('save',False)
+    picker = kwargs.get('picker',False)
+    print 'angle in degrees'
+    angle = np.radians(angle)
+
+    if fig == None and ax == None:
+        fig,ax = plt.subplots(figsize=(10,15))
+    else:
+        print('using outside figure')
+
+    def plot(tr,o,ax):
+        e = tr.stats.npts/tr.stats.sampling_rate
+        t = np.linspace(o,o+e,num=tr.stats.npts)
+        phi = tr.stats.sac['gcarc']*np.sin(angle)+tr.stats.sac['az']*np.cos(angle)
+        ax.plot(t,tr.data+phi,alpha=0.5,
+                color=color,label=tr.stats.network+'.'+tr.stats.station,
+                picker=10,rasterized=True)
 
     if a_list == True:
         for tr in st:
@@ -1112,33 +1318,6 @@ def section(st,**kwargs):
         return ([min_time,max_time],[min_range-3,max_range+3])
 
     main()
-
-def az_section(st, phase, **kwargs):
-    '''
-    Plot traces as a function of azimuthal change
-    '''
-    window_tuple = kwargs.get('window_tuple',(-40,40))
-    tr_list = []
-    for tr in st:
-        d = data.phase_window(tr,['S'],window_tuple).normalize().data
-        az = round(tr.stats.sac['az'],3)
-        tr_list.append((az,d))
-
-
-    fig, ax = plt.subplots(figsize=(10,15))
-    ax.set_ylabel('Source-reciever azimuth')
-    ax.set_xlabel('Seconds after PREM predicted {} phase'.format(phase[0]))
-    ax.set_title('{} \n Channel: {}, Depth: {} km'.format(
-                 st[10].stats.starttime,
-                 st[10].stats.channel,
-                 round(st[10].stats.sac['evdp'],3)))
-    ax.grid()
-
-    for ii in tr_list:
-        time = np.linspace(window_tuple[0],window_tuple[1],
-                           num=len(ii[1]))
-        ax.plot(time,ii[0]+ii[1],'k',alpha=0.5)
-    plt.show()
 
 def fft(tr,**kwargs):
     '''
