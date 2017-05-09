@@ -38,7 +38,6 @@ def kurtosis_filter(st, **kwargs):
             st.remove(tr)
     return st
 
-
 def dirty_filter(st,**kwargs):
     '''
     Remove trace from stream if noise is too much
