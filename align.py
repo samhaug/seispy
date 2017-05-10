@@ -6,7 +6,7 @@
 File Name : align.py
 Purpose : module for manually aligning data
 Creation Date : 09-05-2017
-Last Modified : Tue 09 May 2017 02:00:01 PM EDT
+Last Modified : Tue 09 May 2017 04:37:53 PM EDT
 Created By : Samuel M. Haugland
 
 ==============================================================================
@@ -28,19 +28,27 @@ def align(st_in,**kwargs):
     a_list = kwargs.get('a_list',True)
 
     st = st_in.copy()
+    drag_dict = {}
+    for tr in st:
+        tr.stats.identify = tr.stats.station
+        drag_dict[tr.stats.identify] = 0
+
     st.interpolate(50)
-    st.normalize()
-    simple_section(st,a_list=['S'],section_type='sec_type',a_list=a_list)
+    simple_section(st,section_type=sec_type,a_list=a_list)
     dragh = DragHandler(st)
     plt.show()
-    shift_list = zip(dragh.station,dragh.shift)
 
-    for shift in shift_list:
-        for tr in st:
-            if tr.stats.station == shift[0]:
-                print tr.stats.station,shift[0],shift[1]
-                tr.data = np.roll(tr.data,shift[1])
+    shift_list = zip(dragh.station,dragh.shift)
+    for ii in shift_list:
+        drag_dict[ii[0]] += ii[1]
+
+    for keys in drag_dict:
+        for idx,tr in enumerate(st):
+            if tr.stats.identify == keys:
+                print keys,tr.stats.identify,int(drag_dict[keys]*tr.stats.sampling_rate)
+                st[idx].data = np.roll(st[idx].data,int(drag_dict[keys]*tr.stats.sampling_rate))
             else:
+                #print 'fuck'
                 continue
     return st
 
@@ -80,8 +88,8 @@ def simple_section(st,**kwargs):
             XX = (tr.stats.sac['gcarc']*np.sin(np.radians(sec_type))+
                  tr.stats.sac['az']*np.cos(np.radians(sec_type)))
 
-        ax.plot(t,tr.data+(1.4*XX),alpha=0.5,
-                color=color,label=tr.stats.station,
+        ax.plot(t,(tr.data/0.5)+(XX),alpha=0.5,
+                color=color,label=tr.stats.identify,
                 picker=10)
 
     if a_list == True:
@@ -141,7 +149,7 @@ class DragHandler(object):
             self.dragged.set_data(self.xdata,newy)
             self.dragged = None
             p.draw()
-            self.shift.append(int((newx-self.pick_pos)*(self.srate)))
+            self.shift.append(newx-self.pick_pos)
             return True
         except (AttributeError,TypeError):
             return True

@@ -936,6 +936,7 @@ def simple_section(st,**kwargs):
     save = kwargs.get('save',False)
     picker = kwargs.get('picker',False)
     rainbow = kwargs.get('rainbow',False)
+    mode = kwargs.get('mode','gcarc')
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(10,15))
@@ -945,11 +946,18 @@ def simple_section(st,**kwargs):
     def plot(tr,o,ax,color):
         e = tr.stats.npts/tr.stats.sampling_rate
         t = np.linspace(o,o+e,num=tr.stats.npts)
-        ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
+        if mode == 'gcarc':
+            ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
                 color=color,label=tr.stats.network+'.'+tr.stats.station,
                 picker=10)
+        elif mode == 'az':
+            ax.plot(t,tr.data+tr.stats.sac['az'],alpha=0.5,
+                color=color,label=tr.stats.network+'.'+tr.stats.station,
+                picker=10)
+
+
     def randcolor():
-        c_list = ['red','blue','cyan','green','orange','pink','purple','magenta',
+        c_list = ['red','blue','cyan','green','orange','purple','magenta',
                   'limegreen','goldenrod','black']
         return c_list[np.random.randint(len(c_list))]
 
