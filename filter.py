@@ -5,6 +5,8 @@ import obspy
 from obspy.taup import TauPyModel
 import numpy as np
 model = TauPyModel(model="prem")
+from scipy.optimize import curve_fit
+from matplotlib import pyplot as plt
 
 '''
 Samuel Haugland 01/19/16
@@ -147,6 +149,24 @@ def az_filter(st, az_tuple):
             st.remove(tr)
 
     return st
+
+def monochrome(tr):
+
+    def my_sin(t,freq,amplitude,phase):
+        return np.sin(t*freq+phase)*amplitude
+
+    tmax = tr.stats.endtime-tr.stats.starttime
+    t = np.linspace(0,tmax,num=len(tr.data))
+
+    p0 = [0.05,tr.data.max(),0]
+    try:
+        popt, pcov = curve_fit(my_sin,t,tr.data,p0=p0)
+    except RuntimeError:
+        return tr
+    fit = my_sin(t, *popt)
+    tr.data += -fit
+    return tr
+
 
 
 
