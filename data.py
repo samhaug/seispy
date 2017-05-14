@@ -319,9 +319,10 @@ def normalize_on_phase(st,**kwargs):
     '''
     phase = kwargs.get('phase',['P'])
     window_tuple = kwargs.get('window_tuple',(-10,10))
+    in_model = kwargs.get('model','prem50')
 
     for tr in st:
-        window = phase_window(tr,phase,window=window_tuple)
+        window = phase_window(tr,phase,window=window_tuple,model=in_model)
         tr.data = tr.data/np.abs(window.data).max()
     return st
 

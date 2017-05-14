@@ -937,6 +937,9 @@ def simple_section(st,**kwargs):
     picker = kwargs.get('picker',False)
     rainbow = kwargs.get('rainbow',False)
     mode = kwargs.get('mode','gcarc')
+    xlim = kwargs.get('xlim',(-200,200))
+    ylim = kwargs.get('ylim',(0,180))
+    title = kwargs.get('title','')
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(10,15))
@@ -985,8 +988,8 @@ def simple_section(st,**kwargs):
                 else:
                     plot(tr,-1*(P_time+tr.stats.sac['o']),ax,color)
     ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Epicentral Distance (deg)')
-    ax.set_title(st[0].stats.network)
+    ax.set_ylabel(mode)
+    ax.set_title(title)
 
     if picker == True:
         remove_list = []
@@ -1002,6 +1005,9 @@ def simple_section(st,**kwargs):
             if tr.stats.network+'.'+tr.stats.station in remove_list:
                 st.remove(tr)
 
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    plt.tight_layout()
     if save == False:
         plt.show()
     else:
