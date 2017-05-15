@@ -5,7 +5,7 @@ import obspy
 from obspy.taup import TauPyModel
 import numpy as np
 model = TauPyModel(model="prem")
-from scipy.optimize import curve_fit
+import scipy.optimize
 from matplotlib import pyplot as plt
 
 '''
@@ -150,22 +150,34 @@ def az_filter(st, az_tuple):
 
     return st
 
-def monochrome(tr):
+def monochrome(tr,**kwargs):
+    '''Fit sin to the input time sequence, and return fitting parameters "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
+    cutoff = kwargs.get('cutoff',30)
 
-    def my_sin(t,freq,amplitude,phase):
-        return np.sin(t*freq+phase)*amplitude
+    tt = np.linspace(0,tr.stats.endtime-tr.stats.starttime,num=tr.stats.npts)
+    yy = tr.data
+    ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
+    Fyy = abs(np.fft.fft(yy))
+    guess_freq = abs(ff[np.argmax(Fyy[1:])+1])   # excluding the zero frequency "peak", which is related to offset
+    guess_amp = np.std(yy) * 2.**0.5
+    guess_offset = np.mean(yy)
+    guess = np.array([guess_amp, 2.*np.pi*guess_freq, 0., guess_offset])
 
-    tmax = tr.stats.endtime-tr.stats.starttime
-    t = np.linspace(0,tmax,num=len(tr.data))
-
-    p0 = [0.05,tr.data.max(),0]
+    def sinfunc(t, A, w, p, c):  return A * np.sin(w*t + p) + c
     try:
-        popt, pcov = curve_fit(my_sin,t,tr.data,p0=p0)
+        popt, pcov = scipy.optimize.curve_fit(sinfunc, tt, yy, p0=guess)
     except RuntimeError:
         return tr
-    fit = my_sin(t, *popt)
-    tr.data += -fit
-    return tr
+    A, w, p, c = popt
+    f = w/(2.*np.pi)
+    fitfunc = lambda t: A * np.sin(w*t + p) + c
+    res =  {"amp": A, "omega": w, "phase": p, "offset": c, "freq": f, "period": 1./f,
+             "fitfunc": fitfunc, "maxcov": np.max(pcov), "rawres": (guess,popt,pcov)}
+    if res['period'] > cutoff:
+        tr.data += -1*res['fitfunc'](tt)
+        return tr
+    else:
+        return tr
 
 
 

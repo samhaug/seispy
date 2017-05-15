@@ -943,8 +943,12 @@ def simple_section(st,**kwargs):
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(10,15))
+        plt.tight_layout()
     else:
         print('using outside figure')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel(mode)
+    ax.set_title(title)
 
     def plot(tr,o,ax,color):
         e = tr.stats.npts/tr.stats.sampling_rate
@@ -987,10 +991,7 @@ def simple_section(st,**kwargs):
                     plot(tr,-1*(P_time+tr.stats.sac['o']),ax,randcolor())
                 else:
                     plot(tr,-1*(P_time+tr.stats.sac['o']),ax,color)
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel(mode)
-    ax.set_title(title)
-
+    
     if picker == True:
         remove_list = []
         def on_pick(event):
@@ -1000,6 +1001,8 @@ def simple_section(st,**kwargs):
             remove_list.append(artist.get_label())
             fig.canvas.draw()
         fig.canvas.mpl_connect('pick_event', on_pick)
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
         plt.show()
         for tr in st:
             if tr.stats.network+'.'+tr.stats.station in remove_list:
@@ -1007,7 +1010,6 @@ def simple_section(st,**kwargs):
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    plt.tight_layout()
     if save == False:
         plt.show()
     else:
