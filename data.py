@@ -9,6 +9,7 @@ from scipy.signal import argrelextrema
 model = TauPyModel(model="prem")
 import itertools
 import seispy.convert
+from scipy.signal import tukey
 
 
 def rotate_phase(stz,stn,ste,phase):
@@ -164,6 +165,34 @@ def phase_window(tr,phase,**kwargs):
     PKPPKP_tr = tr.slice(start+t+window_tuple[0],start+t+window_tuple[1])
     #PKPPKP_tr.stats.sac['o'] += -1*window_tuple[0]
     return PKPPKP_tr
+
+def phase_mask(tr_in,phase,**kwargs):
+    '''
+    return window around PKIKP phase
+    '''
+    tr = tr_in.copy()
+    window_len = kwargs.get('window_len',20)
+    in_model = kwargs.get('model','prem50')
+
+    if type(in_model) == str:
+        model = TauPyModel(model=in_model)
+    else:
+        model = in_model
+
+    tr.stats.distance = tr.stats.sac['gcarc']
+    origin_time = tr.stats.sac['o']
+    start = tr.stats.starttime
+
+    sr = tr.stats.sampling_rate
+    time = model.get_travel_times(source_depth_in_km = tr.stats.sac['evdp'],
+                                       distance_in_degree = tr.stats.sac['gcarc'],
+                                       phase_list = phase)
+    t = time[0].time+origin_time
+    window = tukey(int(sr*window_len),0.2)
+    mask = np.zeros(len(tr.data))
+    mask[int(sr*t):int(sr*t)+int(sr*window_len)] = window
+    tr.data *= mask
+    return tr
 
 def tr_align_on_phase(tr, **kwargs):
     '''
