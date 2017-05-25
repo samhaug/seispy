@@ -828,9 +828,13 @@ def compare_section(std,sts,**kwargs):
     a_list = kwargs.get('a_list',True)
     fig = kwargs.get('fig',None)
     ax = kwargs.get('ax',None)
+    model = kwargs.get('model','prem')
+    mode = kwargs.get('mode','gcarc')
+    model = TauPyModel(model=model)
 
     if fig == None and ax == None:
-        fig,ax = plt.subplots(figsize=(10,15))
+        fig,ax = plt.subplots(figsize=(9,12))
+        plt.tight_layout()
 
     for ii in range(0,len(std)):
         try:
@@ -853,13 +857,15 @@ def compare_section(std,sts,**kwargs):
 
             t_dat = np.linspace(ds-t0,ds-t0+dpts*ddelt,num=dpts)
             t_syn = np.linspace(ss-t0,ss-t0+spts*sdelt,num=spts)
-            ax.plot(t_dat-P_time,std[ii].data+std[ii].stats.sac['gcarc'],alpha=0.5,color='k')
-            ax.plot(t_syn-P_time,sts[ii].data+sts[ii].stats.sac['gcarc'],alpha=0.5,color='r',label='sim')
+            ax.plot(t_dat-P_time,std[ii].data+std[ii].stats.sac[mode],alpha=0.5,color='k')
+            ax.plot(t_syn-P_time,sts[ii].data+sts[ii].stats.sac[mode],alpha=0.5,color='r',label='sim')
         except IndexError:
             plt.show()
+    ax.set_ylabel(mode)
+    ax.set_xlabel('Time (s)')
 
-    if fig == None and ax == None:
-        plt.show()
+    #if fig == None and ax == None:
+    plt.show()
 
 def reduction_simple_section(st,r,**kwargs):
     '''
@@ -942,7 +948,7 @@ def simple_section(st,**kwargs):
     title = kwargs.get('title','')
 
     if fig == None and ax == None:
-        fig,ax = plt.subplots(figsize=(10,15))
+        fig,ax = plt.subplots(figsize=(9,12))
         plt.tight_layout()
     else:
         print('using outside figure')
@@ -991,7 +997,7 @@ def simple_section(st,**kwargs):
                     plot(tr,-1*(P_time+tr.stats.sac['o']),ax,randcolor())
                 else:
                     plot(tr,-1*(P_time+tr.stats.sac['o']),ax,color)
-    
+
     if picker == True:
         remove_list = []
         def on_pick(event):
@@ -1010,6 +1016,7 @@ def simple_section(st,**kwargs):
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+
     if save == False:
         plt.show()
     else:

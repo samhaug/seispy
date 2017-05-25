@@ -12,12 +12,14 @@ import seispy.convert
 from scipy.signal import tukey
 
 
-def rotate_phase(stz,stn,ste,phase):
+def rotate_phase(stz,stn,ste,phase,**kwargs):
     '''
     Rotate a three component trace in zne to coordinate system for specific
     phase.
     do not normalize or process the array in any way.
     '''
+    model = kwargs.get('model','prem50')
+    model = TauPyModel(model=model)
 
     def make_R(i,baz):
         R = np.matrix([[np.cos(i),-1*np.sin(i)*np.sin(baz),-1*np.sin(i)*np.cos(baz)],

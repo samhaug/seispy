@@ -20,7 +20,6 @@ def mineos_convert(st):
     return st
 
 def set_baz(st,**kwargs):
-
     f = kwargs.get('f',0.0033528106647474805)
 
     for tr in st:
@@ -37,7 +36,6 @@ def set_baz(st,**kwargs):
     return st
 
 def master_set(st):
-
     for tr in st:
         tr.stats.location = tr.stats.sac['gcarc']
         tr.stats.sortname = tr.stats.network+tr.stats.station+str(tr.stats.location)
