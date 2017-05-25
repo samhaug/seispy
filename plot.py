@@ -831,6 +831,8 @@ def compare_section(std,sts,**kwargs):
     model = kwargs.get('model','prem')
     mode = kwargs.get('mode','gcarc')
     model = TauPyModel(model=model)
+    xlim = kwargs.get('xlim',None)
+    ylim = kwargs.get('ylim',None)
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(9,12))
@@ -863,6 +865,8 @@ def compare_section(std,sts,**kwargs):
             plt.show()
     ax.set_ylabel(mode)
     ax.set_xlabel('Time (s)')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
 
     #if fig == None and ax == None:
     plt.show()
@@ -943,8 +947,8 @@ def simple_section(st,**kwargs):
     picker = kwargs.get('picker',False)
     rainbow = kwargs.get('rainbow',False)
     mode = kwargs.get('mode','gcarc')
-    xlim = kwargs.get('xlim',(-200,200))
-    ylim = kwargs.get('ylim',(0,180))
+    xlim = kwargs.get('xlim',None)
+    ylim = kwargs.get('ylim',None)
     title = kwargs.get('title','')
 
     if fig == None and ax == None:
