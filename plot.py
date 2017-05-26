@@ -838,37 +838,41 @@ def compare_section(std,sts,**kwargs):
         fig,ax = plt.subplots(figsize=(9,12))
         plt.tight_layout()
 
-    for ii in range(0,len(std)):
-        try:
-            ds = std[ii].stats.starttime
-            ss = sts[ii].stats.starttime
-            ddelt = std[ii].stats.delta
-            sdelt = sts[ii].stats.delta
-            dpts = std[ii].stats.npts
-            spts = sts[ii].stats.npts
-            t0 = min(ss,ds)
-            P_time = 0
+    for tr in std:
+        ds = tr.stats.starttime
+        ddelt = tr.stats.delta
+        dpts = tr.stats.npts
+        P_time = 0
+        if a_list != True:
+            evdp = tr.stats.sac['evdp']
+            gcarc = tr.stats.sac['gcarc']
+            P = model.get_travel_times(distance_in_degree=gcarc,
+                source_depth_in_km=evdp,
+                phase_list = a_list)
+            P_time += P[0].time
+        t_dat = np.linspace(0,dpts*ddelt,num=dpts)
+        ax.plot(t_dat-P_time,tr.data+tr.stats.sac[mode],alpha=0.5,color='k')
 
-            if a_list != True:
-                evdp = std[ii].stats.sac['evdp']
-                gcarc = std[ii].stats.sac['gcarc']
-                P = model.get_travel_times(distance_in_degree=gcarc,
-                    source_depth_in_km=evdp,
-                    phase_list = a_list)
-                P_time += P[0].time
+    for tr in sts:
+        ss = tr.stats.starttime
+        sdelt = tr.stats.delta
+        spts = tr.stats.npts
+        P_time = 0
+        if a_list != True:
+            evdp = tr.stats.sac['evdp']
+            gcarc = tr.stats.sac['gcarc']
+            P = model.get_travel_times(distance_in_degree=gcarc,
+                source_depth_in_km=evdp,
+                phase_list = a_list)
+            P_time += P[0].time
+        t_syn = np.linspace(0,spts*sdelt,num=spts)
+        ax.plot(t_syn-P_time,tr.data+tr.stats.sac[mode],alpha=0.5,color='r',label='sim')
 
-            t_dat = np.linspace(ds-t0,ds-t0+dpts*ddelt,num=dpts)
-            t_syn = np.linspace(ss-t0,ss-t0+spts*sdelt,num=spts)
-            ax.plot(t_dat-P_time,std[ii].data+std[ii].stats.sac[mode],alpha=0.5,color='k')
-            ax.plot(t_syn-P_time,sts[ii].data+sts[ii].stats.sac[mode],alpha=0.5,color='r',label='sim')
-        except IndexError:
-            plt.show()
     ax.set_ylabel(mode)
     ax.set_xlabel('Time (s)')
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
-    #if fig == None and ax == None:
     plt.show()
 
 def reduction_simple_section(st,r,**kwargs):
