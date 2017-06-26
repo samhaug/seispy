@@ -31,7 +31,10 @@ def plot(st):
     fig1 = plt.figure(figsize=(10,10))
     lat_0 = st[0].stats.sac['evla']
     lon_0 = st[0].stats.sac['evlo']
-    m = Basemap(projection='ortho',lat_0=lat_0,lon_0=lon_0)
+    #m = Basemap(projection='ortho',lat_0=lat_0,lon_0=lon_0)
+
+    m = Basemap(projection='aeqd',lat_0=lat_0,lon_0=lon_0)
+    #m = Basemap(projection='ortho',lat_0=lat_0,lon_0=lon_0)
     xpt, ypt = m(lon_0, lat_0)
     m.scatter(xpt,ypt,s=99,c='red',marker='o',lw=1)
     # fill background.
@@ -40,8 +43,8 @@ def plot(st):
     m.drawcoastlines(linewidth=0.5)
     #m.fillcontinents(color='coral',lake_color='aqua')
     # 20 degree graticule.
-    m.drawparallels(np.arange(-80,81,20))
-    m.drawmeridians(np.arange(-180,180,20))
+    #m.drawparallels(np.arange(-80,81,20))
+    #m.drawmeridians(np.arange(-180,180,20))
     # draw a black dot at the center.
     for tr in st:
         lat_0 = tr.stats.sac['stla']
@@ -49,6 +52,7 @@ def plot(st):
         xpt, ypt = m(lon_0, lat_0)
         m.scatter(xpt,ypt,s=5,c='green',marker='o',lw=0)
 
+    '''
     fig2 = plt.figure(figsize=(10,10))
     m = Basemap(projection='ortho',lat_0=latav,lon_0=lonav)
     xpt, ypt = m(st[0].stats.sac['evlo'], st[0].stats.sac['evla'])
@@ -67,33 +71,34 @@ def plot(st):
         lon_0 = tr.stats.sac['stlo']
         xpt, ypt = m(lon_0, lat_0)
         m.scatter(xpt,ypt,s=5,c='green',marker='o',lw=0)
+    '''
 
     plt.show()
 
 def beachball(tr, **kwargs):
-   plot = kwargs.get('plot',True)
-   coord = kwargs.get('xy',(0,0))
-   w = kwargs.get('width',(900000,900000))
+    plot = kwargs.get('plot',True)
+    coord = kwargs.get('xy',(0,0))
+    w = kwargs.get('width',(900000,900000))
 
-   ymd = str(tr.stats.starttime+tr.stats.sac['o']).split('-')
-   hm = str(tr.stats.starttime+tr.stats.sac['o']).split(':')
+    ymd = str(tr.stats.starttime+tr.stats.sac['o']).split('-')
+    hm = str(tr.stats.starttime+tr.stats.sac['o']).split(':')
 
-   lat = str(round(tr.stats.sac['evla']))
-   lon = str(round(tr.stats.sac['evlo']))
+    lat = str(round(tr.stats.sac['evla']))
+    lon = str(round(tr.stats.sac['evlo']))
 
-   year = str(ymd[0])
-   month = str(ymd[1])
-   day = str(ymd[2][0:2])
+    year = str(ymd[0])
+    month = str(ymd[1])
+    day = str(ymd[2][0:2])
 
-   hour = str(hm[0][-2:])
-   min = str(hm[1])
+    hour = str(hm[0][-2:])
+    min = str(hm[1])
 
-   key = '{}_{}_{}_{}_{}_{}_{}'.format(year,month,day,hour,min,lat,lon)
+    key = '{}_{}_{}_{}_{}_{}_{}'.format(year,month,day,hour,min,lat,lon)
 
-   if plot == 'map':
+    if plot == 'map':
        return Beach(list(cmt[key][...]),width=w,xy=coord)
-   #else:
-   #    Beachball(list(cmt[key][...]))
+    #else:
+    #    Beachball(list(cmt[key][...]))
 
 def mapplot(proj,**kwargs):
    """

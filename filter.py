@@ -96,7 +96,7 @@ def gimp_filter(st):
         if tr.data.shape[0] < 100:
             st.remove(tr)
 
-    st.interpolate(sampling_rate=50.0)
+    st.interpolate(sampling_rate=30.0)
 
     mx_len = max_len(st)
 
@@ -144,12 +144,16 @@ def az_filter(st, az_tuple):
 def monochrome(tr,**kwargs):
     '''Fit sin to the input time sequence, and return fitting parameters "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
     cutoff = kwargs.get('cutoff',30)
+    guess = kwargs.get('guess',False)
 
     tt = np.linspace(0,tr.stats.endtime-tr.stats.starttime,num=tr.stats.npts)
     yy = tr.data
     ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
     Fyy = abs(np.fft.fft(yy))
-    guess_freq = abs(ff[np.argmax(Fyy[1:])+1])   # excluding the zero frequency "peak", which is related to offset
+    if guess == False:
+        guess_freq = abs(ff[np.argmax(Fyy[1:])+1])   # excluding the zero frequency "peak", which is related to offset
+    else:
+        guess_freq = guess
     guess_amp = np.std(yy) * 2.**0.5
     guess_offset = np.mean(yy)
     guess = np.array([guess_amp, 2.*np.pi*guess_freq, 0., guess_offset])

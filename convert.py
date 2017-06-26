@@ -19,20 +19,19 @@ def mineos_convert(st):
     st = set_gcarc(st)
     return st
 
-def set_baz(st,**kwargs):
+def set_az_gcarc(st,**kwargs):
     f = kwargs.get('f',0.0033528106647474805)
 
     for tr in st:
-        baz = obspy.geodetics.gps2dist_azimuth(tr.stats.sac['evla'],
+
+        a = obspy.geodetics.gps2dist_azimuth(tr.stats.sac['evla'],
                                                tr.stats.sac['evlo'],
                                                tr.stats.sac['stla'],
-                                               tr.stats.sac['stlo'],f=f)[-1]
-        az = obspy.geodetics.gps2dist_azimuth(tr.stats.sac['evla'],
-                                               tr.stats.sac['evlo'],
-                                               tr.stats.sac['stla'],
-                                               tr.stats.sac['stlo'],f=f)[-2]
-        tr.stats.sac['baz'] = baz
-        tr.stats.sac['az'] = az
+                                               tr.stats.sac['stlo'],f=f)
+        tr.stats.sac['baz'] = a[-1]
+        tr.stats.sac['az'] = a[-2]
+        tr.stats.sac['gcarc'] = a[0]
+
     return st
 
 def master_set(st):

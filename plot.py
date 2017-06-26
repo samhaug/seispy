@@ -331,7 +331,6 @@ def new_precursor_PKIKP(st_in,**kwargs):
 
     return  main()
 
-
 def old_precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,
                         name=False,plot=True):
     '''
@@ -462,11 +461,6 @@ def old_precursor_PKIKP(seis_stream_in,precursor_onset,time_offset,
     cbar.set_label(r'$\log_{10}(Amplitude)$',fontsize=14)
 
     return np.flipud(envelope_array)
-    #if name == False:
-    #    plt.show()
-    #else:
-    #    fig.suptitle(str(name),fontsize=16)
-    #    plt.savefig('/home/samhaug/Documents/Figures/'+name+'.pdf')
 
 def vespagram(st_in,**kwargs):
     '''
@@ -567,10 +561,14 @@ def vespagram(st_in,**kwargs):
 
     if ax_grab != False:
         ax = ax_grab
-        image_0 = ax.imshow(np.log10(vesp_y),aspect='auto',interpolation='lanczos',
-           extent=[window_tuple[0],window_tuple[1],window_slowness[0],window_slowness[1]],
-           cmap=cmap,vmin=clim[0],vmax=clim[1])
-        return image_0
+        print np.log10(vesp_y).min(),np.log10(vesp_y).max()
+        image_0 = ax.imshow(np.log10(vesp_y),aspect='auto',
+                            interpolation='lanczos',
+                            extent=[window_tuple[0],window_tuple[1],
+                            window_slowness[0],window_slowness[1]],
+                            cmap=cmap,vmin=clim[0],vmax=clim[1])
+        #return image_0
+        return vesp_y
 
     fig, ax = plt.subplots(2,sharex=True,figsize=(15,10))
 
@@ -661,7 +659,6 @@ def vespagram(st_in,**kwargs):
         plt.show()
 
     return vesp_R1
-
 
 def plot(tr,**kwargs):
     '''
@@ -954,6 +951,8 @@ def simple_section(st,**kwargs):
     xlim = kwargs.get('xlim',None)
     ylim = kwargs.get('ylim',None)
     title = kwargs.get('title','')
+    model = kwargs.get('model','prem')
+    model = TauPyModel(model=model)
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(9,12))
