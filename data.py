@@ -10,6 +10,23 @@ model = TauPyModel(model="prem")
 import itertools
 import seispy.convert
 from scipy.signal import tukey
+from scipy.signal import cosine
+
+
+def mask_depth_phase(st,**kwargs):
+    offset = kwargs.get('offset',0)
+    phase_list = ['pPdiff','sPdiff','pPKP','sPKP','pPKIKP','sPKIKP',
+                  'pPKiKP','sPKiKP','pPP','sPP','pSKP','sSKP','pP','sP']
+
+    for tr in st:
+        arr = model.get_travel_times(tr.stats.sac['evdp'],
+                                     tr.stats.sac['gcarc'],phase_list)
+        for ii in arr:
+            mask = np.zeros(tr.stats.npts)
+            t = int((ii.time+tr.stats.sac['o'])*tr.stats.sampling_rate)
+            mask[t-offset:t-offset+int(30*tr.stats.sampling_rate)] = tukey(int(30*tr.stats.sampling_rate))
+            tr.data*= 1.-mask
+    return st
 
 
 def rotate_phase(stz,stn,ste,phase,**kwargs):
