@@ -74,44 +74,29 @@ def dirty_filter(st,**kwargs):
 
     return st
 
-def gimp_filter(st):
+def gimp_filter(st,**kwargs):
+    len_cutoff = kwargs.get('len_cutoff',0.8)
     '''
     Removes seismograms from trace if they have lengths too short. Makes all
     seismograms the same length and same sampling rate
     '''
 
-    def max_len(st):
-        a = []
-        for tr in st:
-            a.append(tr.data.shape[0])
-        return max(a)
+    len_list = []
+    for tr in st:
+        len_list.append(tr.stats.endtime-tr.stats.starttime)
+        #if tr.stats.npts < 500:
+        #    st.remove(tr)
 
-    def min_len(st):
-        a = []
-        for tr in st:
-            a.append(tr.data.shape[0])
-        return min(a)
+    mx_len = np.max(len_list)
+    mn_len = np.min(len_list)
 
     for tr in st:
-        if tr.data.shape[0] < 100:
+        if tr.stats.npts < mx_len*len_cutoff:
             st.remove(tr)
-
-    st.interpolate(sampling_rate=30.0)
-
-    mx_len = max_len(st)
-
-    for tr in st:
-        if tr.data.shape[0] < mx_len*0.8:
+            continue
+        if np.isnan(sum(tr.data)):
             st.remove(tr)
-        elif np.isnan(sum(tr.data)):
-            st.remove(tr)
-
-
-    mn_len = min_len(st)
-
-    for tr in st:
-        tr.data = tr.data[0: mn_len]
-
+    st.interpolate(20)
     return st
 
 def range_filter(st, range_tuple):
