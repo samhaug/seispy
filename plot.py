@@ -966,14 +966,18 @@ def simple_section(st,**kwargs):
     def plot(tr,o,ax,color):
         e = tr.stats.npts/tr.stats.sampling_rate
         t = np.linspace(o,o+e,num=tr.stats.npts)
-        if mode == 'gcarc':
-            ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
+
+        ax.plot(t,tr.data+tr.stats.sac[mode],alpha=0.5,
                 color=color,label=tr.stats.network+'.'+tr.stats.station,
                 picker=10)
-        elif mode == 'az':
-            ax.plot(t,tr.data+tr.stats.sac['az'],alpha=0.5,
-                color=color,label=tr.stats.network+'.'+tr.stats.station,
-                picker=10)
+        #if mode == 'gcarc':
+        #    ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
+        #        color=color,label=tr.stats.network+'.'+tr.stats.station,
+        #        picker=10)
+        #elif mode == 'az':
+        #    ax.plot(t,tr.data+tr.stats.sac['az'],alpha=0.5,
+        #        color=color,label=tr.stats.network+'.'+tr.stats.station,
+        #        picker=10)
 
 
     def randcolor():

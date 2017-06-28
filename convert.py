@@ -30,7 +30,7 @@ def set_az_gcarc(st,**kwargs):
                                                tr.stats.sac['stlo'],f=f)
         tr.stats.sac['baz'] = a[-1]
         tr.stats.sac['az'] = a[-2]
-        tr.stats.sac['gcarc'] = a[0]
+        tr.stats.sac['gcarc'] = a[0]/111195.
 
     return st
 

@@ -23,6 +23,17 @@ def make_dict(st_1, st_2, **kwargs):
 
     return dict_1, dict_2
 
+def obspy_rotate_ne_rt(stn,ste):
+    str = stn.copy()
+    stt = stn.copy()
+    for idx,tr in enumerate(stn):
+        r,t = obspy.signal.rotate.rotate_ne_rt(stn[idx].data,ste[idx].data,stn[idx].stats.sac['baz'])
+        str[idx].data = r
+        str[idx].stats.channel = 'R'
+        stt[idx].data = t
+        stt[idx].stats.channel = 'T'
+    return str,stt
+
 def rotate_ne_rt(stn,ste):
     str = stn.copy()
     stt = stn.copy()
