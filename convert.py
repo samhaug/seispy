@@ -5,6 +5,7 @@ import obspy
 from geopy.distance import great_circle
 from obspy.taup import TauPyModel
 model = TauPyModel(model="prem")
+import time
 
 
 
@@ -114,6 +115,29 @@ def xh2sac(st):
         stat = (tr.stats.xh['receiver_latitude'],tr.stats.xh['receiver_longitude'])
         tr.stats.sac['gcarc'] = np.abs(great_circle(source,stat).km/111.195)
     return st
+
+def gemini_stations(st,name='gemini_STATIONS'):
+    '''
+    Make stations file for gemini run
+    '''
+    for tr in st:
+        tr.stats.location = tr.stats.station+tr.stats.network
+    st.sort(['location'])
+
+    f = open(name,'w')
+    with open(name,'w') as f:
+        f.write('File last updated on \n')
+        f.write(time.strftime("%d/%m/%Y_%H:%M:%S")+'\n')
+        for idx,tr in enumerate(st):
+            f.write('{:>5} {:11} {:12} {:12} {:12} {:8} {:30}\n'.format(
+            str(st[0].stats.starttime.year)[-2::],
+            tr.stats.station,
+            tr.stats.network,
+            tr.stats.sac['stla'],
+            tr.stats.sac['stlo'],
+            '0',
+            'Ann Arbor, MI'))
+    f.close()
 
 def axisem_stations(st,name='STATIONS'):
     '''
