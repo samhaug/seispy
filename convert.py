@@ -128,6 +128,7 @@ def gemini_stations(st,name='gemini_STATIONS'):
     with open(name,'w') as f:
         f.write('File last updated on \n')
         f.write(time.strftime("%m/%d/%Y_%H:%M:%S")+'\n')
+        f.write('00  s_station s_location s_lat       s_long       s_elev   s_site\n')
         for idx,tr in enumerate(st):
             f.write('{:>5} {:11} {:12} {:12} {:12} {:8} {:30}\n'.format(
             str(st[0].stats.starttime.year)[-2::],

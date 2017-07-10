@@ -543,3 +543,16 @@ def slant(st_in,slowness):
         tr.data = roll_zero(tr.data,int(slowness*dist*samp_rate))
     return st
 
+def stack(st):
+    '''
+    shift stack by slowness relative to center slowness
+    '''
+    s = []
+    for tr in st:
+        s.append(tr.data)
+
+    return np.mean(s,axis=0)
+
+
+
+

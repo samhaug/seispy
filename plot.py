@@ -1617,6 +1617,24 @@ def pick_traces(st):
         if tr.stats.network+'.'+tr.stats.station in remove_list:
             st.remove(tr)
 
+def simple_vesp(st,**kwargs):
+    pmin = kwargs.get('pmin',-20)
+    pmax = kwargs.get('pmax',0)
+    n = kwargs.get('n',200)
+    plot = kwargs.get('plot',True)
+
+    a = []
+    p = np.linspace(pmin,pmax,num=n)
+    for ii in p:
+        stn = data.slant(st,ii)
+        a.append(data.stack(stn))
+
+    t = np.linspace(0,st[0].stats.npts/float(st[0].stats.sampling_rate))
+    if plot:
+        plt.imshow(a,aspect='auto',cmap='seismic',extent=[t[0],t[-1],pmax,-1*pmin])
+        plt.show()
+    else:
+        return np.array(a)
 
 
 
