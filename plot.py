@@ -981,8 +981,9 @@ def simple_section(st,**kwargs):
 
 
     def randcolor():
-        c_list = ['red','blue','cyan','green','orange','purple','magenta',
-                  'limegreen','goldenrod','black']
+        c_list = ['#1f77b4','#ff7f0e','#2ca02c',
+                   '#d62728','#9467bd','#8c564b',
+                   '#e377c2','#7f7f7f','#bcbd22','#17becf']
         return c_list[np.random.randint(len(c_list))]
 
     if a_list == True:

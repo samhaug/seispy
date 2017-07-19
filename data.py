@@ -28,7 +28,6 @@ def mask_depth_phase(st,**kwargs):
             tr.data*= 1.-mask
     return st
 
-
 def rotate_phase(stz,stn,ste,phase,**kwargs):
     '''
     Rotate a three component trace in zne to coordinate system for specific
