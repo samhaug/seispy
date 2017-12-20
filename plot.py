@@ -817,7 +817,7 @@ def parallel_add_to_axes(trace_tuple):
 def compare_phase(std,sts,idex,**kwargs):
     compare_section(std[idex:idex+1],sts[idex:idex+1],**kwargs)
 
-def compare_section(std,sts,**kwargs):
+def compare_section(std_in,sts_in,**kwargs):
     '''
     compare two streams, std is data and sts is synthetic
     '''
@@ -828,19 +828,27 @@ def compare_section(std,sts,**kwargs):
     model = kwargs.get('model','prem')
     mode = kwargs.get('mode','gcarc')
     model = TauPyModel(model=model)
-    xlim = kwargs.get('xlim',None)
-    ylim = kwargs.get('ylim',None)
+    xlim = kwargs.get('x_lim',None)
+    ylim = kwargs.get('y_lim',None)
+    label1 = kwargs.get('label_1',None)
+    label2 = kwargs.get('label_2',None)
+    roll2 = kwargs.get('roll_2',0)
+    roll1 = kwargs.get('roll_1',0)
+
+    std = std_in.copy()
+    sts = sts_in.copy()
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(9,12))
         plt.tight_layout()
 
-    for tr in std:
+    for idx,tr in enumerate(std):
         ds = tr.stats.starttime
         ddelt = tr.stats.delta
         dpts = tr.stats.npts
         P_time = 0
         if a_list != True:
+
             evdp = tr.stats.sac['evdp']
             gcarc = tr.stats.sac['gcarc']
             P = model.get_travel_times(distance_in_degree=gcarc,
@@ -848,9 +856,16 @@ def compare_section(std,sts,**kwargs):
                 phase_list = a_list)
             P_time += P[0].time
         t_dat = np.linspace(0,dpts*ddelt,num=dpts)
-        ax.plot(t_dat-P_time,tr.data+tr.stats.sac[mode],alpha=0.5,color='k')
+        if roll1 != 0:
+            tr.data = np.roll(tr.data,int(roll1*tr.stats.sampling_rate))
+        if idx == 0:
+            ax.plot(t_dat-P_time,
+                    tr.data+tr.stats.sac[mode],alpha=0.5,color='k',label=label1)
+        else:
+            ax.plot(t_dat-P_time,
+                    tr.data+tr.stats.sac[mode],alpha=0.5,color='k')
 
-    for tr in sts:
+    for idx,tr in enumerate(sts):
         ss = tr.stats.starttime
         sdelt = tr.stats.delta
         spts = tr.stats.npts
@@ -863,8 +878,16 @@ def compare_section(std,sts,**kwargs):
                 phase_list = a_list)
             P_time += P[0].time
         t_syn = np.linspace(0,spts*sdelt,num=spts)
-        ax.plot(t_syn-P_time,tr.data+tr.stats.sac[mode],alpha=0.5,color='r',label='sim')
+        if roll2 != 0:
+            tr.data = np.roll(tr.data,int(roll2*tr.stats.sampling_rate))
+        if idx == 0:
+            ax.plot(t_syn-P_time,tr.data+tr.stats.sac[mode],
+                    alpha=0.5,color='r',label=label2)
+        else:
+            ax.plot(t_syn-P_time,tr.data+tr.stats.sac[mode],
+                    alpha=0.5,color='r')
 
+    plt.legend()
     ax.set_ylabel(mode)
     ax.set_xlabel('Time (s)')
     ax.set_xlim(xlim)
@@ -940,6 +963,7 @@ def simple_section(st,**kwargs):
     '''
     Simpler section plotter for obspy stream object
     '''
+    plt.ioff()
     a_list = kwargs.get('a_list',True)
     fig = kwargs.get('fig',None)
     ax = kwargs.get('ax',None)
@@ -948,8 +972,8 @@ def simple_section(st,**kwargs):
     picker = kwargs.get('picker',False)
     rainbow = kwargs.get('rainbow',False)
     mode = kwargs.get('mode','gcarc')
-    xlim = kwargs.get('xlim',None)
-    ylim = kwargs.get('ylim',None)
+    xlim = kwargs.get('x_lim',None)
+    ylim = kwargs.get('y_lim',None)
     title = kwargs.get('title','')
     model = kwargs.get('model','prem')
     model = TauPyModel(model=model)
@@ -963,22 +987,14 @@ def simple_section(st,**kwargs):
     ax.set_ylabel(mode)
     ax.set_title(title)
 
-    def plot(tr,o,ax,color):
+    def plot(tr,o,ax,color,**kwargs):
+        alpha = kwargs.get('alpha',0.5)
         e = tr.stats.npts/tr.stats.sampling_rate
         t = np.linspace(o,o+e,num=tr.stats.npts)
 
-        ax.plot(t,tr.data+tr.stats.sac[mode],alpha=0.5,
+        ax.plot(t,tr.data+tr.stats.sac[mode],alpha=alpha,
                 color=color,label=tr.stats.network+'.'+tr.stats.station,
-                picker=10)
-        #if mode == 'gcarc':
-        #    ax.plot(t,tr.data+tr.stats.sac['gcarc'],alpha=0.5,
-        #        color=color,label=tr.stats.network+'.'+tr.stats.station,
-        #        picker=10)
-        #elif mode == 'az':
-        #    ax.plot(t,tr.data+tr.stats.sac['az'],alpha=0.5,
-        #        color=color,label=tr.stats.network+'.'+tr.stats.station,
-        #        picker=10)
-
+                picker=10,lw=0.8)
 
     def randcolor():
         c_list = ['#1f77b4','#ff7f0e','#2ca02c',
@@ -989,7 +1005,7 @@ def simple_section(st,**kwargs):
     if a_list == True:
         for tr in st:
             if rainbow == True:
-                plot(tr,0,ax,randcolor())
+                plot(tr,0,ax,randcolor(),alpha=0.7)
             else:
                 plot(tr,0,ax,color)
 
@@ -1033,6 +1049,7 @@ def simple_section(st,**kwargs):
         plt.show()
     else:
         plt.savefig(save)
+    plt.ion()
 
 def az_simple_section(st,**kwargs):
     '''

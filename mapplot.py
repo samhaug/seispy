@@ -18,7 +18,8 @@ import geopy
 cmt = h5py.File('/home/samhaug/Utils/CMT_catalog/cmt.h5','r')
 
 
-def plot(st):
+def plot(st,**kwargs):
+    gc = kwargs.get('great_circle',False)
     width = 28000000
     latav = []
     lonav = []
@@ -29,27 +30,19 @@ def plot(st):
     lonav = np.mean(lonav)
 
     fig1 = plt.figure(figsize=(10,10))
-    lat_0 = st[0].stats.sac['evla']
-    lon_0 = st[0].stats.sac['evlo']
-    #m = Basemap(projection='ortho',lat_0=lat_0,lon_0=lon_0)
+    lat_s = st[0].stats.sac['evla']
+    lon_s = st[0].stats.sac['evlo']
 
-    m = Basemap(projection='aeqd',lat_0=lat_0,lon_0=lon_0)
-    #m = Basemap(projection='ortho',lat_0=lat_0,lon_0=lon_0)
-    xpt, ypt = m(lon_0, lat_0)
+    m = Basemap(projection='aeqd',lat_0=lat_s,lon_0=lon_s)
+    xpt, ypt = m(lon_s,lat_s)
     m.scatter(xpt,ypt,s=99,c='red',marker='o',lw=1)
-    # fill background.
-    #m.drawmapboundary(fill_color='aqua')
-    # draw coasts and fill continents.
     m.drawcoastlines(linewidth=0.5)
-    #m.fillcontinents(color='coral',lake_color='aqua')
-    # 20 degree graticule.
-    #m.drawparallels(np.arange(-80,81,20))
-    #m.drawmeridians(np.arange(-180,180,20))
-    # draw a black dot at the center.
     for tr in st:
         lat_0 = tr.stats.sac['stla']
         lon_0 = tr.stats.sac['stlo']
         xpt, ypt = m(lon_0, lat_0)
+        if gc == True:
+            m.drawgreatcircle(lon_s,lat_s,lon_0,lat_0,color='k',alpha=0.1,lw=0.4)
         m.scatter(xpt,ypt,s=5,c='green',marker='o',lw=0)
 
     '''
