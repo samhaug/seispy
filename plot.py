@@ -976,6 +976,7 @@ def simple_section(st,**kwargs):
     ylim = kwargs.get('y_lim',None)
     title = kwargs.get('title','')
     model = kwargs.get('model','prem')
+    mult = kwargs.get('mult',1.0)
     model = TauPyModel(model=model)
 
     if fig == None and ax == None:
@@ -992,7 +993,7 @@ def simple_section(st,**kwargs):
         e = tr.stats.npts/tr.stats.sampling_rate
         t = np.linspace(o,o+e,num=tr.stats.npts)
 
-        ax.plot(t,tr.data+tr.stats.sac[mode],alpha=alpha,
+        ax.plot(t,(mult*tr.data/tr.data.max())+tr.stats.sac[mode],alpha=alpha,
                 color=color,label=tr.stats.network+'.'+tr.stats.station,
                 picker=10,lw=0.8)
 

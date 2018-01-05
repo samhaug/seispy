@@ -14,6 +14,23 @@ This module is all about getting the metadata for each trace in a stream
 ready for analysis
 '''
 
+def h5_convert(st,name):
+    for tr in st:
+        try:
+            tr.stats.evdp  = tr.stats.sac['evdp']
+            tr.stats.evla  = tr.stats.sac['evla']
+            tr.stats.evlo  = tr.stats.sac['evlo']
+            tr.stats.stla  = tr.stats.sac['stla']
+            tr.stats.stlo  = tr.stats.sac['stlo']
+            tr.stats.o     = tr.stats.sac['o']
+            tr.stats.gcarc = tr.stats.sac['gcarc']
+            tr.stats.az    = tr.stats.sac['az']
+            tr.stats.baz   = tr.stats.sac['baz']
+        except KeyError:
+            print('Metadata missing')
+            continue
+    st.write(name+'.h5',format='H5')
+
 def mineos_convert(st):
     st = set_baz(st)
     st = SOD_evdp(st)
@@ -162,6 +179,26 @@ def axisem_stations(st,name='STATIONS'):
         round(tr.stats.sac['gcarc'],2),
         round(tr.stats.sac['az'],2),
         round(tr.stats.sac['baz'],2)))
+    f.close()
+
+def axisem3d_stations(st,name='STATIONS'):
+    '''
+    Make STATIONS ascii file for a 1D axisem3d run. remove redundant stations
+    '''
+    for tr in st:
+        tr.stats.name = tr.stats.network+tr.stats.network+tr.stats.location
+    st.sort(['location'])
+
+    f = open(name,'w')
+    for idx,tr in enumerate(st):
+        f.write('{}   {}   {}   {}   {}   {}\n'.format(
+        tr.stats.station+'_'+tr.stats.location,
+        tr.stats.network,
+        tr.stats.stla,
+        tr.stats.stlo,
+        '0.0',
+        '0.0'
+        ))
     f.close()
 
 def specfem_stations(st,name='STATIONS'):
