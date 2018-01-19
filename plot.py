@@ -32,13 +32,13 @@ import os
 from scipy.optimize import curve_fit
 import math
 from matplotlib.colors import LightSource
-from mpl_toolkits.basemap import Basemap
+#from mpl_toolkits.basemap import Basemap
 from cycler import cycler
 import multiprocessing
 import shutil
-from seispy import mapplot
+#from seispy import mapplot
 from seispy import data
-from seispy import convert
+#from seispy import convert
 
 ppt_font =  {'family' : 'sans-serif',
              'style' : 'normal',
@@ -1025,7 +1025,7 @@ def simple_h5_section(st,**kwargs):
                 if rainbow == True:
                     plot(tr,-1*(P_time+tr.stats.o),ax,randcolor())
                 else:
-                    plot(tr,-1*(P_time+tr.stats.saco),ax,color)
+                    plot(tr,-1*(P_time+tr.stats.o),ax,color)
 
     if picker == True:
         remove_list = []

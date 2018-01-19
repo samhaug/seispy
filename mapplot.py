@@ -2,12 +2,12 @@
 
 import numpy as np
 import obspy
-from mpl_toolkits.basemap import Basemap
+#from mpl_toolkits.basemap import Basemap
 from obspy.imaging.beachball import Beach
 import matplotlib
 from matplotlib import pyplot as plt
 import os
-import myplot.basemap
+#import myplot.basemap
 import h5py
 from obspy.imaging.beachball import Beachball
 from obspy.taup import TauPyModel
