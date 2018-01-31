@@ -24,22 +24,22 @@ def plot(st,**kwargs):
     latav = []
     lonav = []
     for tr in st:
-        latav.append(tr.stats.sac['stla'])
-        lonav.append(tr.stats.sac['stlo'])
+        latav.append(tr.stats.stla)
+        lonav.append(tr.stats.stlo)
     latav = np.mean(latav)
     lonav = np.mean(lonav)
 
     fig1 = plt.figure(figsize=(10,10))
-    lat_s = st[0].stats.sac['evla']
-    lon_s = st[0].stats.sac['evlo']
+    lat_s = st[0].stats.evla
+    lon_s = st[0].stats.evlo
 
     m = Basemap(projection='aeqd',lat_0=lat_s,lon_0=lon_s)
     xpt, ypt = m(lon_s,lat_s)
     m.scatter(xpt,ypt,s=99,c='red',marker='o',lw=1)
     m.drawcoastlines(linewidth=0.5)
     for tr in st:
-        lat_0 = tr.stats.sac['stla']
-        lon_0 = tr.stats.sac['stlo']
+        lat_0 = tr.stats.stla
+        lon_0 = tr.stats.stlo
         xpt, ypt = m(lon_0, lat_0)
         if gc == True:
             m.drawgreatcircle(lon_s,lat_s,lon_0,lat_0,color='k',alpha=0.1,lw=0.4)
