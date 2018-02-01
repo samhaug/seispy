@@ -127,12 +127,12 @@ def rotate_phase(stz,stn,ste,phase,**kwargs):
     for idx,tr in enumerate(stz):
 
         baz = np.radians(obspy.geodetics.base.gps2dist_azimuth(
-              tr.stats.sac['evla'],
-              tr.stats.sac['evlo'],
-              tr.stats.sac['stla'],
-              tr.stats.sac['stlo'])[-1])
-        gcarc = tr.stats.sac['gcarc']
-        h = tr.stats.sac['evdp']
+              tr.stats.evla,
+              tr.stats.evlo,
+              tr.stats.stla,
+              tr.stats.stlo)[-1])
+        gcarc = tr.stats.gcarc
+        h = tr.stats.evdp
         arrivals = model.get_travel_times(source_depth_in_km=h,
                                           distance_in_degree=gcarc,
                                           phase_list=phase)

@@ -54,7 +54,7 @@ def set_az_gcarc(st,**kwargs):
 
 def master_set(st):
     for tr in st:
-        tr.stats.location = tr.stats.sac['gcarc']
+        tr.stats.location = tr.stats.gcarc
         tr.stats.sortname = tr.stats.network+tr.stats.station+str(tr.stats.location)
     st.sort(['sortname'])
     return st
@@ -108,9 +108,9 @@ def set_gcarc(st):
     Set gcarc for each trace in stream given station and event lat lon exist
     '''
     for tr in st:
-        source = (tr.stats.sac['evla'],tr.stats.sac['evlo'])
-        stat = (tr.stats.sac['stla'],tr.stats.sac['stlo'])
-        tr.stats.sac['gcarc'] = np.abs(great_circle(source,stat).km/111.195)
+        source = (tr.stats.evla,tr.stats.evlo)
+        stat = (tr.stats.stla,tr.stats.stlo)
+        tr.stats.gcarc = np.abs(great_circle(source,stat).km/111.195)
     return st
 
 def xh2sac(st):
