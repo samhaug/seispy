@@ -837,6 +837,8 @@ def compare_section(std_in,sts_in,**kwargs):
 
     std = std_in.copy()
     sts = sts_in.copy()
+    std.normalize()
+    sts.normalize()
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(9,12))
@@ -849,8 +851,8 @@ def compare_section(std_in,sts_in,**kwargs):
         P_time = 0
         if a_list != True:
 
-            evdp = tr.stats.sac['evdp']
-            gcarc = tr.stats.sac['gcarc']
+            evdp = tr.stats.evdp
+            gcarc = tr.stats.gcarc
             P = model.get_travel_times(distance_in_degree=gcarc,
                 source_depth_in_km=evdp,
                 phase_list = a_list)
@@ -860,10 +862,10 @@ def compare_section(std_in,sts_in,**kwargs):
             tr.data = np.roll(tr.data,int(roll1*tr.stats.sampling_rate))
         if idx == 0:
             ax.plot(t_dat-P_time,
-                    tr.data+tr.stats.sac[mode],alpha=0.5,color='k',label=label1)
+                    tr.data+tr.stats.gcarc,alpha=0.5,color='k',label=label1)
         else:
             ax.plot(t_dat-P_time,
-                    tr.data+tr.stats.sac[mode],alpha=0.5,color='k')
+                    tr.data+tr.stats.gcarc,alpha=0.5,color='k')
 
     for idx,tr in enumerate(sts):
         ss = tr.stats.starttime
@@ -871,20 +873,20 @@ def compare_section(std_in,sts_in,**kwargs):
         spts = tr.stats.npts
         P_time = 0
         if a_list != True:
-            evdp = tr.stats.sac['evdp']
-            gcarc = tr.stats.sac['gcarc']
+            evdp = tr.stats.evdp
+            gcarc = tr.stats.gcarc
             P = model.get_travel_times(distance_in_degree=gcarc,
-                source_depth_in_km=evdp,
-                phase_list = a_list)
+                                       source_depth_in_km=evdp,
+                                       phase_list=a_list)
             P_time += P[0].time
         t_syn = np.linspace(0,spts*sdelt,num=spts)
         if roll2 != 0:
             tr.data = np.roll(tr.data,int(roll2*tr.stats.sampling_rate))
         if idx == 0:
-            ax.plot(t_syn-P_time,tr.data+tr.stats.sac[mode],
+            ax.plot(t_syn-P_time,tr.data+tr.stats.gcarc,
                     alpha=0.5,color='r',label=label2)
         else:
-            ax.plot(t_syn-P_time,tr.data+tr.stats.sac[mode],
+            ax.plot(t_syn-P_time,tr.data+tr.stats.gcarc,
                     alpha=0.5,color='r')
 
     plt.legend()
