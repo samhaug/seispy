@@ -109,7 +109,7 @@ def range_filter(st, range_tuple):
     '''
 
     for tr in st:
-        if not range_tuple[0] <= tr.stats.sac['gcarc'] <= range_tuple[1]:
+        if not range_tuple[0] <= tr.stats.gcarc <= range_tuple[1]:
             st.remove(tr)
 
     return st
