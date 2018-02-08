@@ -673,8 +673,8 @@ def plot(tr,**kwargs):
     fig, ax = plt.subplots(figsize=(23,9))
     if phases != False:
         arrivals = t_model.get_travel_times(
-                   distance_in_degree=tr.stats.sac['gcarc'],
-                   source_depth_in_km=tr.stats.sac['evdp'],
+                   distance_in_degree=tr.stats.gcarc,
+                   source_depth_in_km=tr.stats.evdp,
                    phase_list = phases)
         window_list = []
         colors = ['b','g','r','c','m','y','k']
@@ -684,8 +684,8 @@ def plot(tr,**kwargs):
                 window_list.append(ii.time)
     ax.legend()
 
-    time = np.linspace(-1*tr.stats.sac['o'],
-           (tr.stats.delta*tr.stats.npts)-tr.stats.sac['o'],
+    time = np.linspace(-1*tr.stats.o,
+           (tr.stats.delta*tr.stats.npts)-tr.stats.o,
            num=tr.stats.npts)
     ax.plot(time,tr.data,c='k')
     ax.grid()
@@ -694,8 +694,8 @@ def plot(tr,**kwargs):
                   tr.stats.network,
                   tr.stats.station,
                   tr.stats.channel,
-                  round(tr.stats.sac['gcarc'],3),
-                  round(tr.stats.sac['evdp'],3),
+                  round(tr.stats.gcarc,3),
+                  round(tr.stats.evdp,3),
                   tr.stats.starttime,
                   tr.stats.endtime))
     ax.set_xlabel('Time (s), sampling_rate: {}, npts: {}'
@@ -814,8 +814,8 @@ def parallel_add_to_axes(trace_tuple):
     line = matplotlib.lines.Line2D(time,data+dist,alpha=0.5,c='k',lw=1)
     return line
 
-def compare_phase(std,sts,idex,**kwargs):
-    compare_section(std[idex:idex+1],sts[idex:idex+1],**kwargs)
+#def compare_phase(std,sts,idex,**kwargs):
+#    compare_section(std[idex:idex+1],sts[idex:idex+1],**kwargs)
 
 def compare_section(std_in,sts_in,**kwargs):
     '''
