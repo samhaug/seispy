@@ -845,6 +845,7 @@ def compare_section(std_in,sts_in,**kwargs):
         plt.tight_layout()
 
     for idx,tr in enumerate(std):
+        o = tr.stats.o
         ds = tr.stats.starttime
         ddelt = tr.stats.delta
         dpts = tr.stats.npts
@@ -857,7 +858,7 @@ def compare_section(std_in,sts_in,**kwargs):
                 source_depth_in_km=evdp,
                 phase_list = a_list)
             P_time += P[0].time
-        t_dat = np.linspace(0,dpts*ddelt,num=dpts)
+        t_dat = np.linspace(-o,dpts*ddelt-o,num=dpts)
         if roll1 != 0:
             tr.data = np.roll(tr.data,int(roll1*tr.stats.sampling_rate))
         if idx == 0:
@@ -868,6 +869,7 @@ def compare_section(std_in,sts_in,**kwargs):
                     tr.data+tr.stats.gcarc,alpha=0.5,color='k')
 
     for idx,tr in enumerate(sts):
+        o = tr.stats.o
         ss = tr.stats.starttime
         sdelt = tr.stats.delta
         spts = tr.stats.npts
@@ -879,7 +881,7 @@ def compare_section(std_in,sts_in,**kwargs):
                                        source_depth_in_km=evdp,
                                        phase_list=a_list)
             P_time += P[0].time
-        t_syn = np.linspace(0,spts*sdelt,num=spts)
+        t_syn = np.linspace(-o,spts*sdelt-o,num=spts)
         if roll2 != 0:
             tr.data = np.roll(tr.data,int(roll2*tr.stats.sampling_rate))
         if idx == 0:
