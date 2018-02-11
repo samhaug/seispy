@@ -863,10 +863,11 @@ def compare_section(std_in,sts_in,**kwargs):
             tr.data = np.roll(tr.data,int(roll1*tr.stats.sampling_rate))
         if idx == 0:
             ax.plot(t_dat-P_time,
-                    tr.data+tr.stats.gcarc,alpha=0.5,color='k',label=label1)
+                    tr.data+tr.stats.gcarc,alpha=0.5,color='k',label=label1,
+                    lw=0.5)
         else:
             ax.plot(t_dat-P_time,
-                    tr.data+tr.stats.gcarc,alpha=0.5,color='k')
+                    tr.data+tr.stats.gcarc,alpha=0.5,color='k',lw=0.5)
 
     for idx,tr in enumerate(sts):
         o = tr.stats.o
@@ -886,10 +887,10 @@ def compare_section(std_in,sts_in,**kwargs):
             tr.data = np.roll(tr.data,int(roll2*tr.stats.sampling_rate))
         if idx == 0:
             ax.plot(t_syn-P_time,tr.data+tr.stats.gcarc,
-                    alpha=0.5,color='r',label=label2)
+                    alpha=0.5,color='r',label=label2,lw=0.5)
         else:
             ax.plot(t_syn-P_time,tr.data+tr.stats.gcarc,
-                    alpha=0.5,color='r')
+                    alpha=0.5,color='r',lw=0.5)
 
     plt.legend()
     ax.set_ylabel(mode)
