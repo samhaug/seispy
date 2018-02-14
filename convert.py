@@ -42,13 +42,13 @@ def set_az_gcarc(st,**kwargs):
 
     for tr in st:
 
-        a = obspy.geodetics.gps2dist_azimuth(tr.stats.sac['evla'],
-                                               tr.stats.sac['evlo'],
-                                               tr.stats.sac['stla'],
-                                               tr.stats.sac['stlo'],f=f)
-        tr.stats.sac['baz'] = a[-1]
-        tr.stats.sac['az'] = a[-2]
-        tr.stats.sac['gcarc'] = a[0]/111195.
+        a = obspy.geodetics.gps2dist_azimuth(tr.stats.evla,
+                                               tr.stats.evlo,
+                                               tr.stats.stla,
+                                               tr.stats.stlo,f=f)
+        tr.stats.baz = a[-1]
+        tr.stats.az = a[-2]
+        tr.stats.gcarc = a[0]/111195.
 
     return st
 
