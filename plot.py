@@ -1057,6 +1057,99 @@ def simple_h5_section(st,**kwargs):
         plt.savefig(save)
     plt.ion()
 
+def simple_h5_az_section(st,**kwargs):
+    '''
+    Simpler section plotter for obspy stream object
+    '''
+    plt.ioff()
+    a_list = kwargs.get('a_list',True)
+    fig = kwargs.get('fig',None)
+    ax = kwargs.get('ax',None)
+    color = kwargs.get('color','k')
+    save = kwargs.get('save',False)
+    picker = kwargs.get('picker',False)
+    rainbow = kwargs.get('rainbow',False)
+    mode = kwargs.get('mode','gcarc')
+    xlim = kwargs.get('x_lim',None)
+    ylim = kwargs.get('y_lim',None)
+    title = kwargs.get('title','')
+    model = kwargs.get('model','prem')
+    mult = kwargs.get('mult',1.0)
+    model = TauPyModel(model=model)
+
+    if fig == None and ax == None:
+        fig,ax = plt.subplots(figsize=(9,12))
+        plt.tight_layout()
+    else:
+        print('using outside figure')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel(mode)
+    ax.set_title(title)
+
+    def plot(tr,o,ax,color,**kwargs):
+        alpha = kwargs.get('alpha',0.5)
+        e = tr.stats.npts/tr.stats.sampling_rate
+        t = np.linspace(o,o+e,num=tr.stats.npts)
+
+        ax.plot(t,(mult*tr.data/tr.data.max())+tr.stats.az,alpha=alpha,
+                color=color,label=tr.stats.network+'.'+tr.stats.station,
+                picker=10,lw=0.8)
+
+    def randcolor():
+        c_list = ['#1f77b4','#ff7f0e','#2ca02c',
+                   '#d62728','#9467bd','#8c564b',
+                   '#e377c2','#7f7f7f','#bcbd22','#17becf']
+        return c_list[np.random.randint(len(c_list))]
+
+    if a_list == True:
+        for tr in st:
+            if rainbow == True:
+                plot(tr,0,ax,randcolor(),alpha=0.7)
+            else:
+                plot(tr,0,ax,color)
+
+    elif type(a_list) == list:
+        if len(a_list) != 1:
+            print('Must have phase identifier string of len = 1')
+            return
+        else:
+            for tr in st:
+                evdp = tr.stats.evdp
+                gcarc = tr.stats.gcarc
+                P = model.get_travel_times(distance_in_degree=gcarc,
+                    source_depth_in_km=evdp,
+                    phase_list = a_list)
+                P_time = P[0].time
+                if rainbow == True:
+                    plot(tr,-1*(P_time+tr.stats.o),ax,randcolor())
+                else:
+                    plot(tr,-1*(P_time+tr.stats.o),ax,color)
+
+    if picker == True:
+        remove_list = []
+        def on_pick(event):
+            artist = event.artist
+            artist.set_c('white')
+            artist.set_alpha(0.0)
+            remove_list.append(artist.get_label())
+            fig.canvas.draw()
+        fig.canvas.mpl_connect('pick_event', on_pick)
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        plt.show()
+        for tr in st:
+            if tr.stats.network+'.'+tr.stats.station in remove_list:
+                st.remove(tr)
+
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+
+    if save == False:
+        plt.show()
+    else:
+        plt.savefig(save)
+    plt.ion()
+
 def simple_section(st,**kwargs):
     '''
     Simpler section plotter for obspy stream object
