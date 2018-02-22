@@ -121,7 +121,7 @@ def az_filter(st, az_tuple):
     '''
 
     for tr in st:
-        if not az_tuple[0] <= tr.stats.sac['az'] <= az_tuple[1]:
+        if not az_tuple[0] <= tr.stats.az <= az_tuple[1]:
             st.remove(tr)
 
     return st
