@@ -814,8 +814,6 @@ def parallel_add_to_axes(trace_tuple):
     line = matplotlib.lines.Line2D(time,data+dist,alpha=0.5,c='k',lw=1)
     return line
 
-#def compare_phase(std,sts,idex,**kwargs):
-#    compare_section(std[idex:idex+1],sts[idex:idex+1],**kwargs)
 
 def compare_section(std_in,sts_in,**kwargs):
     '''
@@ -834,6 +832,7 @@ def compare_section(std_in,sts_in,**kwargs):
     label2 = kwargs.get('label_2',None)
     roll2 = kwargs.get('roll_2',0)
     roll1 = kwargs.get('roll_1',0)
+    mult = kwargs.get('mult',1.0)
 
     std = std_in.copy()
     sts = sts_in.copy()
@@ -862,12 +861,21 @@ def compare_section(std_in,sts_in,**kwargs):
         if roll1 != 0:
             tr.data = np.roll(tr.data,int(roll1*tr.stats.sampling_rate))
         if idx == 0:
-            ax.plot(t_dat-P_time,
-                    tr.data+tr.stats.gcarc,alpha=0.5,color='k',label=label1,
-                    lw=0.5)
+            if mode == 'gcarc':
+                ax.plot(t_dat-P_time,
+                        tr.data*mult+tr.stats.gcarc,alpha=0.5,color='k',label=label1,
+                        lw=0.5)
+            elif mode == 'az':
+                ax.plot(t_dat-P_time,
+                        tr.data*mult+tr.stats.az,alpha=0.5,color='k',label=label1,
+                        lw=0.5)
         else:
-            ax.plot(t_dat-P_time,
-                    tr.data+tr.stats.gcarc,alpha=0.5,color='k',lw=0.5)
+            if mode == 'gcarc':
+                ax.plot(t_dat-P_time,
+                        tr.data*mult+tr.stats.gcarc,alpha=0.5,color='k',lw=0.5)
+            elif mode == 'az':
+                ax.plot(t_dat-P_time,
+                        tr.data*mult+tr.stats.az,alpha=0.5,color='k',lw=0.5)
 
     for idx,tr in enumerate(sts):
         o = tr.stats.o
@@ -886,11 +894,19 @@ def compare_section(std_in,sts_in,**kwargs):
         if roll2 != 0:
             tr.data = np.roll(tr.data,int(roll2*tr.stats.sampling_rate))
         if idx == 0:
-            ax.plot(t_syn-P_time,tr.data+tr.stats.gcarc,
-                    alpha=0.5,color='r',label=label2,lw=0.5)
+            if mode == 'gcarc':
+                ax.plot(t_syn-P_time,tr.data*mult+tr.stats.gcarc,
+                        alpha=0.5,color='r',label=label2,lw=0.5)
+            elif mode == 'az':
+                ax.plot(t_syn-P_time,tr.data*mult+tr.stats.az,
+                        alpha=0.5,color='r',label=label2,lw=0.5)
         else:
-            ax.plot(t_syn-P_time,tr.data+tr.stats.gcarc,
-                    alpha=0.5,color='r',lw=0.5)
+            if mode == 'gcarc':
+                ax.plot(t_syn-P_time,tr.data*mult+tr.stats.gcarc,
+                        alpha=0.5,color='r',lw=0.5)
+            elif mode == 'az':
+                ax.plot(t_syn-P_time,tr.data*mult+tr.stats.az,
+                        alpha=0.5,color='r',lw=0.5)
 
     plt.legend()
     ax.set_ylabel(mode)
