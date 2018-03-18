@@ -27,7 +27,8 @@ def obspy_rotate_ne_rt(stn,ste):
     str = stn.copy()
     stt = stn.copy()
     for idx,tr in enumerate(stn):
-        r,t = obspy.signal.rotate.rotate_ne_rt(stn[idx].data,ste[idx].data,stn[idx].stats.sac['baz'])
+        r,t = obspy.signal.rotate.rotate_ne_rt(stn[idx].data,
+                 ste[idx].data,stn[idx].stats.sac['baz'])
         str[idx].data = r
         str[idx].stats.channel = 'R'
         stt[idx].data = t
