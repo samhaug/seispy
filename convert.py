@@ -205,8 +205,8 @@ def specfem_stations(st,name='STATIONS'):
     '''
     Make STATIONS ascii file for a 1D axisem run. remove redundant stations
     '''
-    for tr in st:
-        tr.stats.location = tr.stats.station+tr.stats.network+tr.stats.location
+    #for tr in st:
+    #    tr.stats.location = tr.stats.station+tr.stats.network+tr.stats.location
     st.sort(['stla'])
 
     f = open(name,'w')
