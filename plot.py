@@ -999,9 +999,10 @@ def simple_h5_section(st,**kwargs):
     model = kwargs.get('model','prem')
     mult = kwargs.get('mult',1.0)
     model = TauPyModel(model=model)
+    figsize = kwargs.get('figsize',(9,12))
 
     if fig == None and ax == None:
-        fig,ax = plt.subplots(figsize=(9,12))
+        fig,ax = plt.subplots(figsize=figsize)
         plt.tight_layout()
     else:
         print('using outside figure')
