@@ -99,7 +99,7 @@ def gimp_filter(st,**kwargs):
     st.interpolate(20)
     return st
 
-def range_filter(st, range_tuple):
+def range_filter(st, range_tuple,model='prem'):
     '''
     Removes seismograms from trace if they fall outside the range limits
     of range_tuple
