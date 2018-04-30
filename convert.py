@@ -14,7 +14,7 @@ This module is all about getting the metadata for each trace in a stream
 ready for analysis
 '''
 
-def h5_convert(st,name):
+def h5_convert(st,name=False):
     for tr in st:
         try:
             tr.stats.evdp  = tr.stats.sac['evdp']
@@ -30,7 +30,8 @@ def h5_convert(st,name):
             print('Metadata missing')
             continue
     st = set_az_gcarc(st)
-    st.write(name,format='H5')
+    if name:
+        st.write(name,format='H5')
     return st
 
 def mineos_convert(st):
