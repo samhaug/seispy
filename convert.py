@@ -30,7 +30,8 @@ def h5_convert(st,name):
             print('Metadata missing')
             continue
     st = set_az_gcarc(st)
-    st.write(name+'.h5',format='H5')
+    st.write(name,format='H5')
+    return st
 
 def mineos_convert(st):
     st = set_baz(st)
