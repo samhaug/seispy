@@ -13,7 +13,7 @@ import time
 This module is all about getting the metadata for each trace in a stream
 ready for analysis
 '''
-def even_traces(sta,stb):
+def even_streams(sta,stb):
     a = []
     b = []
     for tr in sta:
