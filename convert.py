@@ -13,6 +13,28 @@ import time
 This module is all about getting the metadata for each trace in a stream
 ready for analysis
 '''
+def even_traces(sta,stb):
+    a = []
+    b = []
+    for tr in sta:
+        if tr.stats.network+tr.stats.station+tr.stats.location in a:
+            sta.remove(tr)
+        else:
+            a.append(tr.stats.network+tr.stats.station+tr.stats.location)
+    for tr in stb:
+        if tr.stats.network+tr.stats.station+tr.stats.location in b:
+            stb.remove(tr)
+        else:
+            b.append(tr.stats.network+tr.stats.station+tr.stats.location)
+    c = set(a).intersection(set(b))
+    for tr in sta:
+        if tr.stats.network+tr.stats.station+tr.stats.location not in c:
+            sta.remove(tr)
+    for tr in stb:
+        if tr.stats.network+tr.stats.station+tr.stats.location not in c:
+            stb.remove(tr)
+
+    return sta,stb
 
 def h5_convert(st,name=False):
     for tr in st:
