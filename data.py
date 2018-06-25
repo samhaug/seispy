@@ -489,13 +489,13 @@ def slant(st_in,slowness):
     st = st_in.copy()
     gc_list = []
     for tr in st:
-        gc_list.append(tr.stats.sac['gcarc'])
+        gc_list.append(tr.stats.gcarc)
 
     mean_dist = np.mean(gc_list)
     samp_rate = st[0].stats.sampling_rate
 
     for tr in st:
-        dist = tr.stats.sac['gcarc']-mean_dist
+        dist = tr.stats.gcarc-mean_dist
         tr.data = roll_zero(tr.data,int(slowness*dist*samp_rate))
     return st
 

@@ -814,7 +814,6 @@ def parallel_add_to_axes(trace_tuple):
     line = matplotlib.lines.Line2D(time,data+dist,alpha=0.5,c='k',lw=1)
     return line
 
-
 def compare_section(std_in,sts_in,**kwargs):
     '''
     compare two streams, std is data and sts is synthetic
@@ -1845,9 +1844,9 @@ def pick_traces(st):
             st.remove(tr)
 
 def simple_vesp(st,**kwargs):
-    pmin = kwargs.get('pmin',-20)
-    pmax = kwargs.get('pmax',0)
-    n = kwargs.get('n',200)
+    pmin = kwargs.get('pmin',-10)
+    pmax = kwargs.get('pmax',10)
+    n = kwargs.get('n',100)
     plot = kwargs.get('plot',True)
 
     a = []
