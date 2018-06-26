@@ -832,11 +832,13 @@ def compare_section(std_in,sts_in,**kwargs):
     roll2 = kwargs.get('roll_2',0)
     roll1 = kwargs.get('roll_1',0)
     mult = kwargs.get('mult',1.0)
+    norm = kwargs.get('norm',True)
 
     std = std_in.copy()
     sts = sts_in.copy()
-    std.normalize()
-    sts.normalize()
+    if norm:
+        std.normalize()
+        sts.normalize()
 
     if fig == None and ax == None:
         fig,ax = plt.subplots(figsize=(9,12))
