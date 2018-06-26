@@ -197,24 +197,23 @@ def phase_window(tr,phase,**kwargs):
     '''
     tr = tr.copy()
     window_tuple = kwargs.get('window',(-10,10))
-    in_model = kwargs.get('model','prem50')
+    in_model = kwargs.get('model','prem')
 
     if type(in_model) == str:
         model = TauPyModel(model=in_model)
     else:
         model = in_model
 
-    tr.stats.distance = tr.stats.sac['gcarc']
-    origin_time = tr.stats.sac['o']
+    tr.stats.distance = tr.stats.gcarc
+    origin_time = tr.stats.o
     start = tr.stats.starttime
 
-    time = model.get_travel_times(source_depth_in_km = tr.stats.sac['evdp'],
-                                       distance_in_degree = tr.stats.sac['gcarc'],
-                                       phase_list = phase)
+    time = model.get_travel_times(source_depth_in_km = tr.stats.evdp,
+                                 distance_in_degree = tr.stats.gcarc,
+                                 phase_list = phase)
     t = time[0].time+origin_time
-    PKPPKP_tr = tr.slice(start+t+window_tuple[0],start+t+window_tuple[1])
-    #PKPPKP_tr.stats.sac['o'] += -1*window_tuple[0]
-    return PKPPKP_tr
+    out_tr = tr.slice(start+t+window_tuple[0],start+t+window_tuple[1])
+    return out_tr
 
 def phase_mask(tr_in,phase,**kwargs):
     '''
