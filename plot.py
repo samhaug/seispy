@@ -1847,8 +1847,8 @@ def pick_traces(st):
 
 def simple_vesp(st,**kwargs):
     pmin = kwargs.get('pmin',-10)
-    pmax = kwargs.get('pmax',3)
-    n = kwargs.get('n',100)
+    pmax = kwargs.get('pmax',10)
+    n = kwargs.get('n',200)
     plot = kwargs.get('plot',True)
 
     a = []
