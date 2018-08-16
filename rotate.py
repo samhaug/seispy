@@ -24,10 +24,20 @@ def make_dict(st_1, st_2, **kwargs):
     return dict_1, dict_2
 
 def obspy_rotate_ne_rt(stn,ste):
+
+    def from_obspy(n, e, ba):
+        if len(n) != len(e):
+            raise TypeError("North and East component have different length.")
+        if ba < 0 or ba > 360:
+            raise ValueError("Back Azimuth should be between 0 and 360 degrees.")
+        r = e * sin((ba + 180) * 2 * pi / 360) + n * cos((ba + 180) * 2 * pi / 360)
+        t = e * cos((ba + 180) * 2 * pi / 360) - n * sin((ba + 180) * 2 * pi / 360)
+        return r, t
+
     str = stn.copy()
     stt = stn.copy()
     for idx,tr in enumerate(stn):
-        r,t = obspy.signal.rotate.rotate_ne_rt(stn[idx].data,
+        r,t = from_obspy(stn[idx].data,
                  ste[idx].data,stn[idx].stats.baz)
         str[idx].data = r
         str[idx].stats.channel = 'R'
