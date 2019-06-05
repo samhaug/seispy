@@ -1,15 +1,5 @@
-#!/usr/bin/env python
-import data
-import filter
-import plot
-import rotate
-import mapplot
+#/home/samhaug/anaconda2/bin/python
+import obspy
 import convert
-import polarization
-import statistics
-import SP_gui
-import sod
-import dsm
-import draghandler
-import align
-import beachball
+import rotate
+import plot

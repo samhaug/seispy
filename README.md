@@ -1,2 +1,2 @@
-# seispy
-Module for processing and plotting seismic data
+# seisutils
+An update to seispy

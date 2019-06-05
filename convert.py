@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import obspy
-from geopy.distance import great_circle
-from obspy.taup import TauPyModel
-model = TauPyModel(model="prem")
-import time
-
-
+from obspy.geodetics import gps2dist_azimuth
 
 '''
 This module is all about getting the metadata for each trace in a stream
@@ -36,7 +30,7 @@ def even_streams(sta,stb):
 
     return sta,stb
 
-def h5_convert(st,name=False):
+def sac_2_h5(st,name=False):
     for tr in st:
         try:
             tr.stats.evdp  = tr.stats.sac['evdp']
@@ -56,106 +50,19 @@ def h5_convert(st,name=False):
         st.write(name,format='H5')
     return st
 
-def mineos_convert(st):
-    st = set_baz(st)
-    st = SOD_evdp(st)
-    st = set_gcarc(st)
-    return st
-
 def set_az_gcarc(st,**kwargs):
     f = kwargs.get('f',0.0033528106647474805)
 
     for tr in st:
 
-        a = obspy.geodetics.gps2dist_azimuth(tr.stats.evla,
-                                               tr.stats.evlo,
-                                               tr.stats.stla,
-                                               tr.stats.stlo,f=f)
+        a = gps2dist_azimuth(tr.stats.evla,
+                             tr.stats.evlo,
+                             tr.stats.stla,
+                             tr.stats.stlo,f=f)
         tr.stats.baz = a[-1]
         tr.stats.az = a[-2]
         tr.stats.gcarc = a[0]/111195.
 
-    return st
-
-def master_set(st):
-    for tr in st:
-        tr.stats.location = tr.stats.gcarc
-        tr.stats.sortname = tr.stats.network+tr.stats.station+str(tr.stats.location)
-    st.sort(['sortname'])
-    return st
-
-def set_origin_time(st,**kwargs):
-    '''
-    set sac['o'] time for events retrieved from SOD.
-    '''
-    phase = kwargs.get('phase',['P'])
-    event_depth = st[0].stats.sac['evdp']
-    for tr in st:
-        arrivals = model.get_travel_times(source_depth_in_km=event_depth,
-                  distance_in_degree=tr.stats.sac['gcarc'],phase_list=phase)
-        time = arrivals[0].time
-        tr.stats.sac['o'] = -1*time
-    return st
-
-def SOD_evdp(st):
-    '''
-    divide all event depths by 1000
-    '''
-    for tr in st:
-        tr.stats.sac['evdp'] *= 0.001
-    return st
-
-def equalize_start_end(st):
-    '''
-    make all traces in the stream share the same start and end time. Do this
-    by cutting off data from longer streams
-    '''
-    out_st = st.copy()
-    starttime_list = []
-    endtime_list = []
-    for tr in out_st:
-        starttime_list.append(tr.stats.starttime)
-        endtime_list.append(tr.stats.endtime)
-    start = min(starttime_list)
-    end = max(endtime_list)
-    print start, end
-    for tr in out_st:
-        t = tr.stats.starttime
-        e = tr.stats.endtime
-        samp = tr.stats.sampling_rate
-        begin_pad = int(np.abs(t-start)*samp)
-        end_pad = int(np.abs(e-end)*samp)
-        tr.data = np.hstack((np.zeros(begin_pad),tr.data,np.zeros(end_pad)))
-    return out_st
-
-def set_gcarc(st):
-    '''
-    Set gcarc for each trace in stream given station and event lat lon exist
-    '''
-    for tr in st:
-        source = (tr.stats.evla,tr.stats.evlo)
-        stat = (tr.stats.stla,tr.stats.stlo)
-        tr.stats.gcarc = np.abs(great_circle(source,stat).km/111.195)
-    return st
-
-def xh2sac(st):
-    '''
-    add sac dictionary to stream object produced for xh files
-    '''
-
-    for tr in st:
-        tr.stats.sac = {}
-        tr.stats.sac['evla'] = tr.stats.xh['source_latitude']
-        tr.stats.sac['evlo'] = tr.stats.xh['source_longitude']
-        tr.stats.sac['stla'] = tr.stats.xh['receiver_latitude']
-        tr.stats.sac['stlo'] = tr.stats.xh['receiver_longitude']
-        tr.stats.sac['evdp'] = tr.stats.xh['source_depth_in_km']
-        tr.stats.sac['o'] = 0.
-        tr.stats.sac['az'] = tr.stats.xh['sensor_azimuth']
-        tr.stats.sac['baz'] = tr.stats.xh['sensor_azimuth']-180
-        source = (tr.stats.xh['source_latitude'],tr.stats.xh['source_longitude'])
-        stat = (tr.stats.xh['receiver_latitude'],tr.stats.xh['receiver_longitude'])
-        tr.stats.sac['gcarc'] = np.abs(great_circle(source,stat).km/111.195)
     return st
 
 def gemini_stations(st,name='gemini_STATIONS'):
